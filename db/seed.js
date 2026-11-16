@@ -17,7 +17,7 @@ async function seed() {
   await migrate();
   const exists = await one('SELECT count(*)::int AS n FROM employees');
   if (exists.n > 0 && !process.argv.includes('--force')) { console.log('Employees already exist; seed skipped (use --force on a throwaway database).'); return; }
-  if (process.argv.includes('--force')) await q('TRUNCATE profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  if (process.argv.includes('--force')) await q('TRUNCATE board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
 
   const mk = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   const br = {};

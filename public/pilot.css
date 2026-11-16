@@ -54,3 +54,23 @@ body{margin:0}
 .cifacts{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:4px 0;padding:12px 14px;background:#f5f5f5;border-radius:12px}
 .cifacts dt{color:#666;font-size:13px}
 .cifacts dd{margin:0;font-weight:600;text-align:right}
+/* waitlist: full shifts stay pickable so people can join the line */
+.shift.full{cursor:pointer;opacity:1}
+.shift.full .cap{color:#666}
+/* CRA questions */
+.craq{border:1px solid #e3e3e3;border-radius:12px;padding:12px 14px;margin:0;display:grid;gap:10px}
+.craq legend{font-weight:700;padding:0 6px}
+.craq[hidden]{display:none}
+.seatform{display:grid;gap:12px;padding:14px;background:#f7f7f7;border-radius:12px;margin:8px 0}
+/* volunteer résumé */
+.resume h2{margin-top:18px}
+.rlist{margin:0;padding-left:18px;display:grid;gap:6px}
+@media print{
+  header,nav,.tabbar,.noprint,.toast,.ccmodal{display:none !important}
+  body{background:#fff !important}
+  main{padding:0 !important;max-width:none !important}
+  .resume{box-shadow:none !important;border:0 !important;padding:0 !important}
+  .resume .kpi{border:1px solid #ccc}
+}
+.resume .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:700px){.resume .kpis{grid-template-columns:repeat(2,1fr)}}
