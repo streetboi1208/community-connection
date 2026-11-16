@@ -1,0 +1,25 @@
+# Optional: one-click pilot hosting on Render (render.com) as a "Blueprint".
+# Creates the web app and a PostgreSQL database. Loads SAMPLE data on first start only.
+# For production, host under a bank-owned account approved by Information Security.
+services:
+  - type: web
+    name: community-connection-pilot
+    runtime: node
+    buildCommand: npm ci --omit=dev
+    startCommand: node db/seed.js && node src/server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: APP_TZ
+        value: America/Chicago
+      - key: DATABASE_URL
+        fromDatabase:
+          name: community-connection-db
+          property: connectionString
+      - key: DEMO_PASSWORD
+        sync: false   # you type this in the Render dashboard; it becomes the password for the demo.* accounts
+databases:
+  - name: community-connection-db
