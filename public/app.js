@@ -4,7 +4,7 @@
   const I = window.ICONS;
   const $ = s => document.querySelector(s);
   const main = $('#main');
-  const S = { me: null, perms: [], meta: null, admin: false };
+  const S = { me: null, perms: [], meta: null, admin: false, checkin: null, checkinShown: false };
 
   // ---------- helpers ----------
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -56,7 +56,7 @@
     if (S.admin) {
       const items = [['#/admin', 'Admin home', I.grid]];
       if (can('opps.create') || can('rosters.view') || can('kiosk.run')) items.push(['#/admin/opps', 'Opportunities', I.list]);
-      if (can('hours.approve')) items.push(['#/admin/approvals', 'Approvals', I.check]);
+      if (can('hours.approve') || can('people.edit')) items.push(['#/admin/approvals', 'Approvals', I.check]);
       if (can('people.view') || can('accounts.reset')) items.push(['#/admin/people', can('people.view') ? 'People' : 'Password resets', I.user]);
       if (can('reports.hours')) items.push(['#/admin/reports', 'Reports', I.chart]);
       items.push(['/preview', 'Full preview', I.grid]);
@@ -99,7 +99,7 @@
       if (!S.me && hash !== '#/login') {
         const r = await get('/me');
         if (!r.user) return go('#/login');
-        S.me = r.user; S.perms = r.perms;
+        S.me = r.user; S.perms = r.perms; S.checkin = r.checkin || null;
       }
       if (S.me && S.me.must_change && hash !== '#/password') return go('#/password');
       if (S.me && !S.meta && !S.me.must_change) S.meta = await get('/meta');
@@ -111,6 +111,7 @@
       main.innerHTML = '<p class="muted">Loading…</p>';
       await m[1](...hash.match(m[0]).slice(1));
       window.scrollTo(0, 0);
+      if (S.checkin && S.checkin.due && !S.checkinShown && S.meta) { S.checkinShown = true; checkinModal(); }
     } catch (e) {
       main.innerHTML = `<div class="panel"><p class="err">${esc(e.message)}</p><a class="btn ghost" href="#/">Go home</a></div>`;
     }
@@ -291,8 +292,11 @@
     main.innerHTML = `<h1>${esc(p.first_name + ' ' + p.last_name)}</h1>
       <div class="detail even"><div class="panel"><h2>About you</h2>
         <dl class="facts"><dt>${I.org}Market</dt><dd>${esc(p.market)}</dd><dt>${I.pin}Branch</dt><dd>${esc(p.branch || '—')}</dd><dt>${I.people}Department</dt><dd>${esc(p.department || '—')}</dd>
+        <dt>${I.star}Title</dt><dd>${esc(p.title || '—')}</dd><dt>${I.user}Manager</dt><dd>${esc(p.manager_name || '—')}</dd>
+        <dt>${I.list}Employee #</dt><dd>${esc(p.emp_no)}</dd>
         <dt>${I.user}Username</dt><dd>${esc(p.username)}</dd>${p.roles.length ? `<dt>${I.star}Roles</dt><dd>${p.roles.map(r => ROLE[r]).join(', ')}</dd>` : ''}</dl>
-        <small class="muted">Wrong market or branch? Ask an admin to update it.</small>
+        ${S.checkin && S.checkin.pending ? `<div class="note"><span class="pill warn">Waiting for review</span> You asked for a change on ${new Date(S.checkin.pending.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. An admin will update your profile once it's approved.</div>`
+          : '<button class="btn ghost sm" id="fixInfo" type="button">Something wrong? Request a change</button>'}
         <div class="btnrow"><a class="btn ghost" href="#/password">Change password</a><button class="btn ghost" id="so">Sign out</button></div></div>
       <form class="panel" id="prf"><h2>Contact and preferences</h2>
         <div class="field"><label for="pp">Mobile number (optional)</label><input class="input" id="pp" name="phone" type="tel" value="${esc(p.phone || '')}" autocomplete="tel"><small>Only admins see it. Never shown to coworkers.</small></div>
@@ -302,7 +306,8 @@
         <label class="toggle"><input type="checkbox" name="show_name" ${p.show_name ? 'checked' : ''}><span class="sw"></span><small>Show my name on "Who's going" lists</small></label>
         <p class="err" id="pre" hidden></p>
         <button class="btn red" type="submit">Save</button></form></div>`;
-    $('#so').addEventListener('click', async () => { await api('POST', '/logout'); S.me = null; S.meta = null; go('#/login'); });
+    $('#so').addEventListener('click', async () => { await api('POST', '/logout'); S.me = null; S.meta = null; S.checkinShown = false; go('#/login'); });
+    if ($('#fixInfo')) $('#fixInfo').addEventListener('click', () => checkinModal(true));
     $('#prf').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
@@ -314,6 +319,52 @@
     });
   }
 
+  // ================= profile check-in =================
+  // Once or twice a year: confirm work details, or send corrections for an admin to approve.
+  async function checkinModal(startWithForm) {
+    const { user: p } = await get('/me');
+    const wrap = document.createElement('div');
+    wrap.className = 'ccmodal';
+    wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-labelledby', 'ciT');
+    document.body.appendChild(wrap);
+    const close = () => wrap.remove();
+    const row = (l, v) => `<dt>${l}</dt><dd>${esc(v || '—')}</dd>`;
+    const facts = () => {
+      wrap.innerHTML = `<div class="ccbox"><div class="eyebrow">Quick check</div><h2 id="ciT">Is your info still right?</h2>
+        <p class="muted" style="margin:0">We ask ${S.checkin && S.checkin.months === 6 ? 'twice a year' : 'once a year'} so events and reports stay accurate.</p>
+        <dl class="cifacts">${row('Name', p.first_name + ' ' + p.last_name)}${row('Employee #', p.emp_no)}${row('Market', p.market)}${row('Branch', p.branch)}${row('Department', p.department)}${row('Title', p.title)}${row('Manager', p.manager_name)}</dl>
+        <button class="btn red" id="ciYes">Yes, it's correct</button><button class="btn ghost" id="ciNo">Something's wrong</button></div>`;
+      $('#ciYes').addEventListener('click', async () => {
+        try { await api('POST', '/me/confirm'); S.checkin = { ...S.checkin, due: false }; close(); toast('Thanks! You\'re all set.'); } catch (err) { toast(err.message); }
+      });
+      $('#ciNo').addEventListener('click', form);
+      $('#ciYes').focus();
+    };
+    const form = () => {
+      const brs = S.meta.markets.map(m => `<optgroup label="${esc(m.name)}">${S.meta.branches.filter(b => b.market_id === m.id).map(b => `<option value="${b.id}" ${b.id === p.branch_id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</optgroup>`).join('');
+      wrap.innerHTML = `<form class="ccbox" id="cif"><h2 id="ciT">What needs to change?</h2>
+        <p class="muted" style="margin:0">Fix what's wrong. Nothing changes until an admin reviews it.</p>
+        <div class="field"><label for="ciB">Branch</label><select class="input" id="ciB" name="branch_id"><option value="">Not set</option>${brs}</select></div>
+        <div class="field"><label for="ciD">Department</label><select class="input" id="ciD" name="department_id"><option value="">Not set</option>${S.meta.departments.map(d => `<option value="${d.id}" ${d.id === p.department_id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></div>
+        <div class="field"><label for="ciTi">Title</label><input class="input" id="ciTi" name="title" maxlength="80" value="${esc(p.title || '')}"></div>
+        <div class="field"><label for="ciM">Manager</label><input class="input" id="ciM" name="manager_name" maxlength="120" value="${esc(p.manager_name || '')}"></div>
+        <div class="field"><label for="ciN">Anything else? (optional)</label><textarea class="input" id="ciN" name="note" maxlength="500" rows="2" placeholder="Name spelling, market, anything we missed"></textarea></div>
+        <p class="err" id="ciE" hidden></p>
+        <button class="btn red" type="submit">Send for review</button>${startWithForm ? '<button class="btn ghost" type="button" id="ciX">Cancel</button>' : '<button class="btn ghost" type="button" id="ciBack">Back</button>'}</form>`;
+      if ($('#ciBack')) $('#ciBack').addEventListener('click', facts);
+      if ($('#ciX')) $('#ciX').addEventListener('click', close);
+      $('#cif').addEventListener('submit', async e => {
+        e.preventDefault();
+        try {
+          await api('POST', '/me/change-request', formData(e.target));
+          close(); toast('Sent. An admin will review your change.'); S.me = null; route();
+        } catch (err) { showErr($('#ciE'), err); }
+      });
+      $('#ciB').focus();
+    };
+    if (startWithForm) form(); else facts();
+  }
+
   // ================= admin =================
   function vAdminHome() {
     const tiles = [
@@ -321,6 +372,7 @@
       ['rosters.view', '#/admin/opps', I.list, 'Opportunities and sign-ups', 'See who signed up, export rosters'],
       ['kiosk.run', '#/admin/opps', I.check, 'Open the kiosk', 'Check-in on an iPad at an event'],
       ['hours.approve', '#/admin/approvals', I.check, 'Approve hours', 'Self-logged volunteering waiting for review'],
+      ['people.edit', '#/admin/approvals', I.people, 'Profile changes', 'Employee corrections to branch, department or manager'],
       ['people.view', '#/admin/people', I.user, 'People', 'Profiles, sign-ins and password resets'],
       ['accounts.reset', '#/admin/people', I.user, 'Reset a password', 'Find an employee and give them a temporary password'],
       ['roster.import', '#/admin/import', I.people, 'Import employee roster', 'All employees, for true participation %'],
@@ -421,12 +473,28 @@
   }
 
   async function vApprovals() {
-    const { rows } = await get('/admin/approvals');
-    main.innerHTML = `<h1>Approvals</h1><p class="muted" style="margin:0">Volunteering employees logged on their own.${roles().includes('mkta') && !roles().includes('admin') ? ` Showing ${esc(S.me.market)} only.` : ''}</p>
+    const [{ rows }, pr] = await Promise.all([can('hours.approve') ? get('/admin/approvals') : { rows: [] }, can('people.edit') ? get('/admin/profile-requests') : { rows: [] }]);
+    const chg = (label, from, to) => to ? `<tr><td>${label}</td><td>${esc(from || '—')}</td><td><b>${esc(to)}</b></td></tr>` : '';
+    main.innerHTML = `<h1>Approvals</h1>
+      ${can('people.edit') ? `<h2>Profile changes</h2><p class="muted" style="margin:0">Corrections employees sent from their yearly check-in or profile. Approving updates their profile. Also update the HR system, or the next roster import will undo it.</p>
+      ${pr.rows.length ? pr.rows.map(x => `<div class="panel" data-pr="${x.id}"><div class="btnrow" style="justify-content:space-between"><b>${esc(x.first_name + ' ' + x.last_name)}</b><small class="muted">#${esc(x.emp_no)} · ${esc(x.market)} · sent ${new Date(x.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></div>
+        ${x.new_branch || x.new_department || x.new_title || x.new_manager ? `<div class="tablewrap"><table class="stbl tight"><thead><tr><th></th><th>Now</th><th>Change to</th></tr></thead><tbody>
+          ${chg('Branch', x.branch, x.new_branch && x.new_branch + (x.new_branch_market_id !== x.market_id ? ` (moves to ${x.new_market})` : ''))}${chg('Department', x.department, x.new_department)}${chg('Title', x.title, x.new_title)}${chg('Manager', x.manager_name, x.new_manager)}</tbody></table></div>` : ''}
+        ${x.note ? `<p style="margin:0"><span class="muted">Note:</span> ${esc(x.note)}</p>` : ''}
+        <div class="btnrow"><button class="btn sm red" data-ok>Approve</button><input class="input" style="flex:1;min-width:160px" placeholder="Reason (needed to decline)" maxlength="300" data-note><button class="btn sm ghost" data-no>Decline</button></div></div>`).join('') : '<div class="panel empty">No profile changes waiting.</div>'}` : ''}
+      ${can('hours.approve') ? `<h2>Volunteer hours</h2><p class="muted" style="margin:0">Volunteering employees logged on their own.${roles().includes('mkta') && !roles().includes('admin') ? ` Showing ${esc(S.me.market)} only.` : ''}</p>
       ${rows.length ? rows.map(h => `<div class="panel" data-h="${h.id}"><div class="btnrow" style="justify-content:space-between"><b>${esc(h.first_name + ' ' + h.last_name)}</b><small class="muted">${esc(h.branch || '')} · ${esc(h.market)}</small></div>
         <div>${fmtDate(h.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} · <b>${hrs(h.minutes)} hours</b> · ${esc(h.org_name || '')}</div>
         <p class="muted" style="margin:0">${esc(h.details || '')}</p>
-        <div class="btnrow"><button class="btn sm red" data-ok>Approve</button><input class="input" style="flex:1;min-width:160px" placeholder="Reason (needed to decline)" maxlength="300" data-note><button class="btn sm ghost" data-no>Decline</button></div></div>`).join('') : '<div class="panel empty">All caught up. Nothing waiting.</div>'}`;
+        <div class="btnrow"><button class="btn sm red" data-ok>Approve</button><input class="input" style="flex:1;min-width:160px" placeholder="Reason (needed to decline)" maxlength="300" data-note><button class="btn sm ghost" data-no>Decline</button></div></div>`).join('') : '<div class="panel empty">All caught up. Nothing waiting.</div>'}` : ''}`;
+    main.querySelectorAll('[data-pr]').forEach(p => {
+      const id = p.dataset.pr;
+      const act = async decision => {
+        try { await api('POST', `/admin/profile-requests/${id}/decide`, { decision, note: p.querySelector('[data-note]').value }); toast(decision === 'approved' ? 'Profile updated.' : 'Declined.'); vApprovals(); } catch (err) { toast(err.message); }
+      };
+      p.querySelector('[data-ok]').addEventListener('click', () => act('approved'));
+      p.querySelector('[data-no]').addEventListener('click', () => act('rejected'));
+    });
     main.querySelectorAll('[data-h]').forEach(p => {
       const id = p.dataset.h;
       const act = async decision => {
@@ -462,7 +530,9 @@
           <div class="field"><label>Branch</label><select class="input" name="branch_id"><option value="">—</option>${brs.map(b => `<option value="${b.id}" ${b.id === p.branch_id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>
           <div class="field"><label>Department</label><select class="input" name="department_id"><option value="">—</option>${S.meta.departments.map(dd => `<option value="${dd.id}" ${dd.id === p.department_id ? 'selected' : ''}>${esc(dd.name)}</option>`).join('')}</select></div>
           <div class="field"><label>Title</label><input class="input" name="title" value="${esc(p.title || '')}"></div>
+          <div class="field"><label>Manager</label><input class="input" name="manager_name" maxlength="120" value="${esc(p.manager_name || '')}"></div>
         </div>
+        <small class="muted">Info last confirmed by employee: ${p.info_confirmed_at ? new Date(p.info_confirmed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'never'}</small>
         <label class="toggle"><input type="checkbox" name="officer" ${p.officer ? 'checked' : ''}><span class="sw"></span><small>Bank officer</small></label>
         <label class="toggle"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}><span class="sw"></span><small>Active employee (turning off signs them out)</small></label>
         ${isAdmin ? `<fieldset style="border:0;padding:0;margin:0"><legend class="flabel">Roles</legend>${Object.entries(ROLE).map(([k, l]) => `<label class="toggle"><input type="checkbox" name="role" value="${k}" ${p.roles.includes(k) ? 'checked' : ''}><span class="sw"></span><small>${l}</small></label>`).join('')}<small class="muted">Market admins manage only the market on this person's profile.</small></fieldset>` : ''}
@@ -482,7 +552,7 @@
     $('#ef').addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
-      const body = { first_name: f.first_name.value, last_name: f.last_name.value, title: f.title.value, officer: f.officer.checked, active: f.active.checked,
+      const body = { first_name: f.first_name.value, last_name: f.last_name.value, title: f.title.value, manager_name: f.manager_name.value, officer: f.officer.checked, active: f.active.checked,
         branch_id: f.branch_id.value || null, department_id: f.department_id.value || null };
       if (isAdmin) { body.market_id = Number(f.market_id.value); body.roles = [...f.querySelectorAll('[name=role]:checked')].map(x => x.value); }
       if (isAdmin && body.market_id !== p.market_id) body.branch_id = null;
@@ -578,12 +648,12 @@
 
   async function vSettings() {
     const [s, a] = await Promise.all([get('/admin/settings'), get('/admin/audit')]);
-    main.innerHTML = `<h1>Settings</h1><form class="panel" id="stf" style="max-width:520px"><div class="field"><label for="ir">Impact rate ($ per community volunteer hour)</label><input class="input" id="ir" name="impact_rate" type="number" step="0.01" min="1" value="${s.impact_rate}"><small>Internal standard. Cite a source if the number is shared outside the bank.</small></div><div class="field"><label for="hde">IT help desk email</label><input class="input" id="hde" name="helpdesk_email" type="email" value="${esc(s.helpdesk_email || '')}"><small>Shown on the sign-in page as "Email the IT help desk" for forgotten passwords.</small></div><button class="btn red">Save</button></form>
+    main.innerHTML = `<h1>Settings</h1><form class="panel" id="stf" style="max-width:520px"><div class="field"><label for="ir">Impact rate ($ per community volunteer hour)</label><input class="input" id="ir" name="impact_rate" type="number" step="0.01" min="1" value="${s.impact_rate}"><small>Internal standard. Cite a source if the number is shared outside the bank.</small></div><div class="field"><label for="hde">IT help desk email</label><input class="input" id="hde" name="helpdesk_email" type="email" value="${esc(s.helpdesk_email || '')}"><small>Shown on the sign-in page as "Email the IT help desk" for forgotten passwords.</small></div><div class="field"><label for="pcm">Profile check-in</label><select class="input" id="pcm" name="profile_check_months">${[[12, 'Once a year'], [6, 'Twice a year'], [0, 'Off']].map(([v, l]) => `<option value="${v}" ${s.profile_check_months === v ? 'selected' : ''}>${l}</option>`).join('')}</select><small>Employees confirm their branch, department, title and manager. Corrections come to Approvals.</small></div><button class="btn red">Save</button></form>
       <div class="panel"><h2>Audit log (latest 300)</h2><div class="tablewrap"><table class="stbl tight"><thead><tr><th>When</th><th>Who</th><th>What</th><th>Target</th></tr></thead><tbody>
       ${a.rows.map(x => `<tr><td>${new Date(x.at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(x.actor || 'Kiosk / system')}</td><td>${esc(x.action)}</td><td>${esc(x.target || '')}</td></tr>`).join('')}</tbody></table></div></div>`;
     $('#stf').addEventListener('submit', async e => {
       e.preventDefault();
-      try { await api('PUT', '/admin/settings', { impact_rate: Number(e.target.impact_rate.value), helpdesk_email: e.target.helpdesk_email.value }); S.meta = await get('/meta'); toast('Saved.'); } catch (err) { toast(err.message); }
+      try { await api('PUT', '/admin/settings', { impact_rate: Number(e.target.impact_rate.value), helpdesk_email: e.target.helpdesk_email.value, profile_check_months: Number(e.target.profile_check_months.value) }); S.meta = await get('/meta'); toast('Saved.'); } catch (err) { toast(err.message); }
     });
   }
 

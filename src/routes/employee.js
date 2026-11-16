@@ -19,14 +19,30 @@ r.get('/me', async (req, res) => {
   if (!req.user) return res.json({ user: null });
   const p = await one(
     `SELECT e.id, e.first_name, e.last_name, e.username, e.roles, e.market_id, m.name AS market, b.name AS branch,
-            d.name AS department, e.title, e.officer, e.phone, e.personal_email, e.text_consent_at, e.shirt_size, e.show_name, e.must_change
+            d.name AS department, e.branch_id, e.department_id, e.emp_no, e.manager_name, e.info_confirmed_at,
+            e.title, e.officer, e.phone, e.personal_email, e.text_consent_at, e.shirt_size, e.show_name, e.must_change
        FROM employees e JOIN markets m ON m.id=e.market_id
        LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id
       WHERE e.id=$1`, [req.user.id]);
   const perms = ['opps.create', 'opps.createVolunteer', 'rosters.view', 'kiosk.run', 'people.view', 'people.edit',
     'hours.approve', 'reports.hours', 'reports.cra', 'roster.import', 'roles.assign', 'settings.edit', 'accounts.reset'].filter(x => A.can(req.user, x));
-  res.json({ user: p, perms });
+  res.json({ user: p, perms, checkin: await checkinState(req.user.id) });
 });
+
+// Once or twice a year, employees confirm their work details or ask for a change.
+async function checkinState(employeeId) {
+  const months = Number(await setting('profile_check_months', 12));
+  const pending = await one(
+    `SELECT r.id, r.created_at, r.title, r.manager_name, r.note, b.name AS branch, d.name AS department
+       FROM profile_requests r LEFT JOIN branches b ON b.id=r.branch_id LEFT JOIN departments d ON d.id=r.department_id
+      WHERE r.employee_id=$1 AND r.status='pending'`, [employeeId]);
+  let due = false;
+  if (months > 0 && !pending) {
+    const e = await one(`SELECT info_confirmed_at IS NULL OR info_confirmed_at < now() - make_interval(months => $2) AS due FROM employees WHERE id=$1`, [employeeId, months]);
+    due = !!(e && e.due);
+  }
+  return { due, pending: pending || null, months };
+}
 
 // Password change works even when must_change is set.
 r.post('/me/password', async (req, res) => {
@@ -77,6 +93,42 @@ r.patch('/me', async (req, res) => {
     await audit(req.user.id, set.text_consent_at ? 'texts.consented' : 'texts.stopped', `employee:${req.user.id}`);
   }
   res.json({ ok: true });
+});
+
+// ---------- profile check-in ----------
+r.post('/me/confirm', async (req, res) => {
+  await q('UPDATE employees SET info_confirmed_at=now() WHERE id=$1', [req.user.id]);
+  await audit(req.user.id, 'profile.confirmed', `employee:${req.user.id}`);
+  res.json({ ok: true });
+});
+
+// The employee suggests corrections; nothing changes until an admin approves.
+r.post('/me/change-request', async (req, res) => {
+  const b = req.body || {};
+  const cur = await one('SELECT branch_id, department_id, title, manager_name FROM employees WHERE id=$1', [req.user.id]);
+  const branchId = b.branch_id ? int(b.branch_id, 'Branch', { min: 1 }) : null;
+  const deptId = b.department_id ? int(b.department_id, 'Department', { min: 1 }) : null;
+  if (branchId && !(await one('SELECT id FROM branches WHERE id=$1', [branchId]))) throw new Bad('Branch not found.');
+  if (deptId && !(await one('SELECT id FROM departments WHERE id=$1', [deptId]))) throw new Bad('Department not found.');
+  const title = str(b.title, 'Title', { max: 80, required: false }) || null;
+  const manager = str(b.manager_name, 'Manager', { max: 120, required: false }) || null;
+  const note = str(b.note, 'Note', { max: 500, required: false }) || null;
+  const req0 = {
+    branch_id: branchId && branchId !== cur.branch_id ? branchId : null,
+    department_id: deptId && deptId !== cur.department_id ? deptId : null,
+    title: title && title !== cur.title ? title : null,
+    manager_name: manager && manager !== cur.manager_name ? manager : null
+  };
+  if (!Object.values(req0).some(Boolean) && !note) throw new Bad('Change at least one detail, or tell us what is wrong in the note.');
+  if (await one(`SELECT id FROM profile_requests WHERE employee_id=$1 AND status='pending'`, [req.user.id])) {
+    throw new Bad('You already have a change waiting for review.', 409);
+  }
+  const row = await one(
+    `INSERT INTO profile_requests (employee_id, branch_id, department_id, title, manager_name, note) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+    [req.user.id, req0.branch_id, req0.department_id, req0.title, req0.manager_name, note]);
+  await q('UPDATE employees SET info_confirmed_at=now() WHERE id=$1', [req.user.id]);
+  await audit(req.user.id, 'profile.change_requested', `profile_request:${row.id}`, { ...req0, note });
+  res.json({ ok: true, id: row.id });
 });
 
 // ---------- lookups ----------

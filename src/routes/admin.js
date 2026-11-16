@@ -210,7 +210,7 @@ r.get('/people/:id', A.requirePerm('people.view', 'accounts.reset'), async (req,
   }
   const e = await one(
     `SELECT e.id, e.emp_no, e.first_name, e.last_name, e.username, e.roles, e.active, e.officer, e.title, e.hire_date,
-            e.market_id, e.branch_id, e.department_id, e.shirt_size, e.must_change, e.locked_until,
+            e.market_id, e.branch_id, e.department_id, e.manager_name, e.info_confirmed_at, e.shirt_size, e.must_change, e.locked_until,
             (e.pass_hash IS NOT NULL) AS has_account,
             CASE WHEN $2 THEN e.phone END AS phone, CASE WHEN $2 THEN e.personal_email END AS personal_email
        FROM employees e WHERE e.id=$1`, [e0.id, req.user.roles.includes('admin')]);
@@ -228,6 +228,7 @@ r.patch('/people/:id', A.requirePerm('people.edit'), async (req, res) => {
   if (b.first_name !== undefined) set.first_name = str(b.first_name, 'First name', { max: 60 });
   if (b.last_name !== undefined) set.last_name = str(b.last_name, 'Last name', { max: 60 });
   if (b.title !== undefined) set.title = str(b.title, 'Title', { max: 80, required: false });
+  if (b.manager_name !== undefined) set.manager_name = str(b.manager_name, 'Manager', { max: 120, required: false }) || null;
   if (b.officer !== undefined) set.officer = bool(b.officer);
   if (b.active !== undefined) set.active = bool(b.active);
   if (b.branch_id !== undefined) set.branch_id = b.branch_id ? int(b.branch_id, 'Branch', { min: 1 }) : null;
@@ -279,7 +280,7 @@ r.post('/people/:id/account', A.requirePerm('people.edit', 'accounts.reset'), as
 });
 
 // ================= Roster import (all employees, for participation %) =================
-// CSV columns: emp_no, first_name, last_name, market, branch, department, title, officer, hire_date, active
+// CSV columns: emp_no, first_name, last_name, market, branch, department, title, officer, hire_date, active, manager
 r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
   const commit = req.body?.commit === true;
   const deactivateMissing = req.body?.deactivateMissing === true;
@@ -297,7 +298,7 @@ r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
     const g = n => (col(n) >= 0 ? String(r0[col(n)] || '').trim() : '');
     const line = i + 2;
     const rec = { emp_no: g('emp_no'), first_name: g('first_name'), last_name: g('last_name'), market: g('market'),
-      branch: g('branch') || null, department: g('department') || null, title: g('title') || null,
+      branch: g('branch') || null, department: g('department') || null, title: g('title') || null, manager: g('manager') || null,
       officer: bool(g('officer')), hire_date: g('hire_date') || null, active: col('active') >= 0 ? !['n', 'no', 'false', '0', 'inactive'].includes(g('active').toLowerCase()) : true };
     if (!rec.emp_no || !rec.first_name || !rec.last_name) return errors.push(`Row ${line}: employee number, first and last name are required.`);
     if (seen.has(rec.emp_no)) return errors.push(`Row ${line}: employee number ${rec.emp_no} appears twice.`);
@@ -320,12 +321,12 @@ r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
       'INSERT INTO departments (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name RETURNING id', [name])).rows[0].id : null;
     for (const x of recs) {
       await c.query(
-        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, hire_date, active)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, hire_date, active, manager_name)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          ON CONFLICT (emp_no) DO UPDATE SET first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, market_id=EXCLUDED.market_id,
            branch_id=EXCLUDED.branch_id, department_id=EXCLUDED.department_id, title=EXCLUDED.title, officer=EXCLUDED.officer,
-           hire_date=EXCLUDED.hire_date, active=EXCLUDED.active, updated_at=now()`,
-        [x.emp_no, x.first_name, x.last_name, x.market_id, await branchId(x.branch, x.market_id), await deptId(x.department), x.title, x.officer, x.hire_date, x.active]);
+           hire_date=EXCLUDED.hire_date, active=EXCLUDED.active, manager_name=COALESCE(EXCLUDED.manager_name, employees.manager_name), updated_at=now()`,
+        [x.emp_no, x.first_name, x.last_name, x.market_id, await branchId(x.branch, x.market_id), await deptId(x.department), x.title, x.officer, x.hire_date, x.active, x.manager]);
     }
     if (deactivateMissing) {
       await c.query('UPDATE employees SET active=false, updated_at=now() WHERE active AND NOT (emp_no = ANY($1::text[]))', [[...seen]]);
@@ -394,9 +395,56 @@ r.get('/reports/hours', A.requirePerm('reports.hours'), async (req, res) => {
   res.json({ year, rows: rows.slice(0, 500), count: rows.length });
 });
 
+// ================= Profile change requests =================
+const PR_SELECT = `
+  SELECT r.id, r.created_at, r.note, r.title AS new_title, r.manager_name AS new_manager,
+         nb.name AS new_branch, nb.market_id AS new_branch_market_id, nm.name AS new_market, nd.name AS new_department,
+         e.id AS employee_id, e.emp_no, e.first_name, e.last_name, e.title, e.manager_name, e.market_id,
+         mk.name AS market, b.name AS branch, d.name AS department
+    FROM profile_requests r JOIN employees e ON e.id=r.employee_id JOIN markets mk ON mk.id=e.market_id
+    LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id
+    LEFT JOIN branches nb ON nb.id=r.branch_id LEFT JOIN markets nm ON nm.id=nb.market_id LEFT JOIN departments nd ON nd.id=r.department_id`;
+
+r.get('/profile-requests', A.requirePerm('people.edit'), async (req, res) => {
+  const m = A.marketScope(req.user);
+  res.json({ rows: await many(`${PR_SELECT} WHERE r.status='pending' AND ($1::int IS NULL OR e.market_id=$1) ORDER BY r.created_at`, [m]) });
+});
+
+r.post('/profile-requests/:id/decide', A.requirePerm('people.edit'), async (req, res) => {
+  const id = int(req.params.id, 'id', { min: 1 });
+  const decision = oneOf(req.body?.decision, 'Decision', ['approved', 'rejected']);
+  const note = str(req.body?.note, 'Note', { max: 300, required: decision === 'rejected' });
+  await tx(async c => {
+    const p = (await c.query(`SELECT r.*, e.market_id AS cur_market, nb.market_id AS new_market
+                                FROM profile_requests r JOIN employees e ON e.id=r.employee_id LEFT JOIN branches nb ON nb.id=r.branch_id
+                               WHERE r.id=$1 FOR UPDATE OF r`, [id])).rows[0];
+    if (!p) throw new Bad('Not found.', 404);
+    assertMarket(req.user, p.cur_market);
+    if (p.employee_id === req.user.id) throw new Bad("You can't approve a change to your own profile.", 403);
+    if (p.status !== 'pending') throw new Bad('That request was already decided.', 409);
+    if (decision === 'approved') {
+      const moving = p.branch_id && p.new_market !== p.cur_market;
+      if (moving && !req.user.roles.includes('admin')) throw new Bad('This change moves them to another market. An Administrator needs to approve it.', 403);
+      const set = {};
+      if (p.branch_id) { set.branch_id = p.branch_id; if (moving) set.market_id = p.new_market; }
+      if (p.department_id) set.department_id = p.department_id;
+      if (p.title) set.title = p.title;
+      if (p.manager_name) set.manager_name = p.manager_name;
+      const keys = Object.keys(set); // fixed whitelist
+      if (keys.length) {
+        await c.query(`UPDATE employees SET ${keys.map((k, i) => `${k}=$${i + 2}`).join(', ')}, updated_at=now() WHERE id=$1`, [p.employee_id, ...keys.map(k => set[k])]);
+      }
+    }
+    await c.query('UPDATE profile_requests SET status=$2, decided_by=$3, decided_at=now(), decision_note=$4 WHERE id=$1', [id, decision, req.user.id, note]);
+    await audit(req.user.id, `profile.change_${decision}`, `profile_request:${id}`, { employee: p.employee_id, note }, c);
+  });
+  res.json({ ok: true });
+});
+
 // ================= Settings =================
 r.get('/settings', A.requirePerm('settings.edit'), async (req, res) => {
-  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', '') });
+  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', ''),
+    profile_check_months: Number(await setting('profile_check_months', 12)) });
 });
 r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {
   const rate = Number(req.body?.impact_rate);
@@ -405,7 +453,13 @@ r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Bad('Help desk email is not valid.');
   await q(`INSERT INTO settings (key, value) VALUES ('impact_rate', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(rate)]);
   await q(`INSERT INTO settings (key, value) VALUES ('helpdesk_email', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(email)]);
-  await audit(req.user.id, 'settings.updated', 'settings', { rate, helpdesk_email: email });
+  let months = null;
+  if (req.body?.profile_check_months !== undefined) {
+    months = Number(req.body.profile_check_months);
+    if (![0, 6, 12].includes(months)) throw new Bad('Profile check must be every 6 months, every 12 months, or off.');
+    await q(`INSERT INTO settings (key, value) VALUES ('profile_check_months', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(months)]);
+  }
+  await audit(req.user.id, 'settings.updated', 'settings', { rate, helpdesk_email: email, profile_check_months: months });
   res.json({ ok: true });
 });
 

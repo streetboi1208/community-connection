@@ -49,7 +49,7 @@ async function emp(username, roles, market, { mustChange = false, empNo } = {}) 
 
 test.before(async () => {
   await migrate();
-  await q('TRUNCATE checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  await q('TRUNCATE profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
   M = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   ids.admin = await emp('ana.admin', ['admin'], 'Permian Basin');
   ids.emp = await emp('eli.emp', [], 'Permian Basin');
@@ -254,4 +254,71 @@ test('sign-in page shows the help desk email once an admin sets it', async () =>
 test('audit log records admin actions', async () => {
   const n = (await one(`SELECT count(*)::int AS n FROM audit_log WHERE action IN ('opp.create','hours.approved','account.reset','roster.imported','kiosk.opened')`)).n;
   assert.ok(n >= 5);
+});
+
+test('profile check-in: confirm, request a change, and admin review rules', async () => {
+  const pb = (await one(`INSERT INTO branches (name, market_id) VALUES ('Check HQ', $1) RETURNING id`, [M['Permian Basin']])).id;
+  const lb = (await one(`INSERT INTO branches (name, market_id) VALUES ('Check Lubbock', $1) RETURNING id`, [M.Lubbock])).id;
+  const dep = (await one(`INSERT INTO departments (name) VALUES ('Check Dept') RETURNING id`)).id;
+  await q(`UPDATE settings SET value='12' WHERE key='profile_check_months'`);
+
+  // Never confirmed, so the check-in is due; confirming clears it.
+  const e = await new Client().login('leo.lbk');
+  assert.equal((await e.get('/api/me')).data.checkin.due, true);
+  assert.equal((await e.post('/api/me/confirm')).status, 200);
+  assert.equal((await e.get('/api/me')).data.checkin.due, false);
+  // Overdue again after a year
+  await q(`UPDATE employees SET info_confirmed_at = now() - interval '13 months' WHERE id=$1`, [ids.lbkEmp]);
+  assert.equal((await e.get('/api/me')).data.checkin.due, true);
+
+  // An empty request is refused; a real one is stored and does NOT change the profile yet.
+  assert.equal((await e.post('/api/me/change-request', {})).status, 400);
+  const r1 = await e.post('/api/me/change-request', { department_id: dep, manager_name: 'Pat Doe', note: 'New team' });
+  assert.equal(r1.status, 200);
+  const me = (await e.get('/api/me')).data;
+  assert.equal(me.user.department_id, null);
+  assert.equal(me.checkin.due, false);
+  assert.ok(me.checkin.pending);
+  assert.equal((await e.post('/api/me/change-request', { note: 'again' })).status, 409, 'one pending request at a time');
+
+  // A Market admin in another market can't see or decide it; the Lubbock one can.
+  const outside = await new Client().login('max.mkt');
+  assert.equal((await outside.get('/api/admin/profile-requests')).status, 403);
+  const lu = await new Client().login('lu.mkta');
+  const list = (await lu.get('/api/admin/profile-requests')).data.rows;
+  assert.equal(list.length, 1);
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r1.data.id}/decide`, { decision: 'rejected' })).status, 400, 'decline needs a reason');
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r1.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const after = await one('SELECT department_id, manager_name FROM employees WHERE id=$1', [ids.lbkEmp]);
+  assert.equal(after.department_id, dep);
+  assert.equal(after.manager_name, 'Pat Doe');
+
+  // A branch in another market needs an Administrator.
+  const r2 = await e.post('/api/me/change-request', { branch_id: pb });
+  assert.equal(r2.status, 200);
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r2.data.id}/decide`, { decision: 'approved' })).status, 403);
+  const admin = await new Client().login('ana.admin');
+  assert.equal((await admin.post(`/api/admin/profile-requests/${r2.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const moved = await one('SELECT branch_id, market_id FROM employees WHERE id=$1', [ids.lbkEmp]);
+  assert.equal(moved.branch_id, pb);
+  assert.equal(moved.market_id, M['Permian Basin']);
+  await q('UPDATE employees SET market_id=$2, branch_id=$3 WHERE id=$1', [ids.lbkEmp, M.Lubbock, lb]);
+
+  // Nobody approves their own change.
+  const r3 = await (await new Client().login('lu.mkta')).post('/api/me/change-request', { note: 'my title is wrong' });
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r3.data.id}/decide`, { decision: 'approved' })).status, 403);
+
+  // Admin can turn the check-in off.
+  assert.equal((await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 0 })).status, 200);
+  await q(`UPDATE employees SET info_confirmed_at = NULL WHERE id=$1`, [ids.emp]);
+  assert.equal((await (await new Client().login('eli.emp')).get('/api/me')).data.checkin.due, false);
+  assert.equal((await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 3 })).status, 400);
+  await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 12 });
+});
+
+test('full preview needs a signed-in user', async () => {
+  const anon = await new Client().get('/preview');
+  assert.equal(anon.status, 302);
+  const signed = await (await new Client().login('eli.emp')).get('/preview');
+  assert.equal(signed.status, 200);
 });
