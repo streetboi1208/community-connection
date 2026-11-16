@@ -411,3 +411,35 @@ test('volunteer résumé shows approved hours and approved seats only', async ()
   assert.equal(r.data.totals.rate, 30);
   assert.ok(r.data.activity.every(x => x.hours > 0));
 });
+
+test('report builder: groups, filters, top N, who has not volunteered, CSV, saved reports, market scope', async () => {
+  const a = await new Client().login('ana.admin');
+  const y = today().slice(0, 4);
+  let r = await a.get(`/api/admin/reports/custom?group=person&from=${y}-01-01&to=${y}-12-31`);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.ok(r.data.rows.length >= 1 && r.data.rows.every(x => x.records > 0), 'only people with hours');
+  const all = r.data.rows.length;
+  r = await a.get(`/api/admin/reports/custom?group=person&who=not&from=${y}-01-01&to=${y}-12-31`);
+  assert.equal(r.status, 200);
+  assert.ok(r.data.rows.length >= 1 && r.data.rows.every(x => x.records === 0), "only people who haven't volunteered");
+  r = await a.get(`/api/admin/reports/custom?group=market&who=all&sort=participation&from=${y}-01-01&to=${y}-12-31`);
+  assert.ok(r.data.rows.every(x => typeof x.employees === 'number'));
+  r = await a.get(`/api/admin/reports/custom?group=person&top=1&from=${y}-01-01&to=${y}-12-31`);
+  assert.equal(r.data.rows.length, Math.min(1, all));
+  r = await a.get(`/api/admin/reports/custom?group=nope`);
+  assert.equal(r.status, 400);
+  r = await a.get(`/api/admin/reports/custom?group=branch&format=csv&from=${y}-01-01&to=${y}-12-31`);
+  assert.match(r.data, /^#,Branch,Employees,Participation %/);
+  r = await a.get(`/api/admin/reports/custom?kind=guests&from=${y}-01-01&to=${y}-12-31`);
+  assert.equal(r.status, 200);
+  assert.ok('guests' in r.data.total);
+  const s = await a.post('/api/admin/reports/saved', { name: 'Top 10', params: { group: 'person', top: '10', evil: { x: 1 } } });
+  assert.equal(s.status, 200);
+  const list = await a.get('/api/admin/reports/saved');
+  const saved = list.data.find(x => x.id === s.data.id);
+  assert.deepEqual(saved.params, { group: 'person', top: '10' });
+  assert.equal((await a.req('DELETE', `/api/admin/reports/saved/${s.data.id}`)).status, 200);
+  // An employee with no admin role can't run reports.
+  const e = await new Client().login('eli.emp');
+  assert.equal((await e.get('/api/admin/reports/custom')).status, 403);
+});

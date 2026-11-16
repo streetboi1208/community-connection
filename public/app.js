@@ -90,7 +90,7 @@
     [/^#\/log$/, vLog], [/^#\/profile$/, vProfile], [/^#\/resume$/, vResume],
     [/^#\/admin$/, vAdminHome], [/^#\/admin\/opps$/, vAdminOpps], [/^#\/admin\/opp\/(new|\d+)$/, vAdminOppEdit],
     [/^#\/admin\/roster\/(\d+)$/, vAdminRoster], [/^#\/admin\/approvals$/, vApprovals], [/^#\/admin\/people$/, vPeople],
-    [/^#\/admin\/person\/(\d+)$/, vPerson], [/^#\/admin\/import$/, vImport], [/^#\/admin\/reports$/, vReports],
+    [/^#\/admin\/person\/(\d+)$/, vPerson], [/^#\/admin\/import$/, vImport], [/^#\/admin\/reports$/, vReports], [/^#\/admin\/reports\/build$/, vBuilder],
     [/^#\/admin\/settings$/, vSettings]
   ];
   async function route() {
@@ -461,6 +461,7 @@
       ['accounts.reset', '#/admin/people', I.user, 'Reset a password', 'Find an employee and give them a temporary password'],
       ['roster.import', '#/admin/import', I.people, 'Import employee roster', 'All employees, for true participation %'],
       ['reports.hours', '#/admin/reports', I.chart, 'Reports', 'Participation, hours, impact and CRA'],
+      ['reports.hours', '#/admin/reports/build', I.chart, 'Report builder', 'Run your own report: any period, group, filter, top N'],
       ['settings.edit', '#/admin/settings', I.star, 'Settings and audit log', 'Impact rate, who did what']
     ].filter(t => can(t[0]));
     const seen = new Set();
@@ -737,7 +738,7 @@
     const year = sessionStorage.getItem('cc_year') || S.meta.today.slice(0, 4);
     const r = await get(`/admin/reports/participation?by=${by}&year=${year}`);
     const y0 = Number(S.meta.today.slice(0, 4));
-    main.innerHTML = `<h1>Reports</h1><p class="muted" style="margin:0">${esc(r.scope)} · approved hours · impact = community hours × $${r.rate}/hr</p>
+    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>Reports</h1><a class="btn red" href="#/admin/reports/build">Build a custom report</a></div><p class="muted" style="margin:0">${esc(r.scope)} · approved hours · impact = community hours × $${r.rate}/hr</p>
       <div class="kpis"><div class="kpi"><b>${r.total.participation}%</b><span>Participation</span><small>${r.total.volunteers} of ${r.total.employees} employees volunteered</small></div>
         <div class="kpi"><b>${n1(r.total.hours)}</b><span>Volunteer hours</span></div><div class="kpi"><b>${money(r.total.impact)}</b><span>Financial impact</span></div></div>
       <div class="toolbar">${['market', 'branch', 'department', 'officer'].map(b => `<button class="chip" data-by="${b}" aria-pressed="${by === b}">By ${b}</button>`).join('')}
@@ -753,6 +754,173 @@
     $('#d2').addEventListener('click', () => download(`/admin/reports/hours?year=${year}&format=csv`, `hours-${year}.csv`));
     if ($('#d3')) $('#d3').addEventListener('click', () => download(`/admin/reports/hours?year=${year}&cra=1&format=csv`, `cra-hours-${year}.csv`));
     if ($('#d4')) $('#d4').addEventListener('click', () => download('/admin/board-seats?format=csv', 'board-seats.csv'));
+  }
+
+  // ---------- Report builder: run your own reports ----------
+  const RB_KEY = 'cc_rb';
+  const rbLoad = () => { try { return JSON.parse(sessionStorage.getItem(RB_KEY)) || {}; } catch (e) { return {}; } };
+  const rbSave = p => { try { sessionStorage.setItem(RB_KEY, JSON.stringify(p)); } catch (e) { /* private mode */ } };
+  function rbPeriod(name, today) {
+    const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7)), qn = Math.floor((m - 1) / 3);
+    const iso = d => d.toISOString().slice(0, 10);
+    const D = (yy, mm, dd) => new Date(Date.UTC(yy, mm, dd));
+    const t = D(y, m - 1, Number(today.slice(8, 10)));
+    const mon = new Date(t); mon.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+    const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate() + 6);
+    const lmon = new Date(mon); lmon.setUTCDate(mon.getUTCDate() - 7); const lsun = new Date(lmon); lsun.setUTCDate(lmon.getUTCDate() + 6);
+    return {
+      year: [`${y}-01-01`, `${y}-12-31`], lastyear: [`${y - 1}-01-01`, `${y - 1}-12-31`],
+      quarter: [iso(D(y, qn * 3, 1)), iso(D(y, qn * 3 + 3, 0))], lastquarter: [iso(D(y, qn * 3 - 3, 1)), iso(D(y, qn * 3, 0))],
+      month: [iso(D(y, m - 1, 1)), iso(D(y, m, 0))], lastmonth: [iso(D(y, m - 2, 1)), iso(D(y, m - 1, 0))],
+      week: [iso(mon), iso(sun)], lastweek: [iso(lmon), iso(lsun)]
+    }[name];
+  }
+  const RB_PERIODS = [['year', 'This year'], ['lastyear', 'Last year'], ['quarter', 'This quarter'], ['lastquarter', 'Last quarter'], ['month', 'This month'], ['lastmonth', 'Last month'], ['week', 'This week'], ['lastweek', 'Last week'], ['custom', 'Custom dates']];
+  const RB_TEMPLATES = [
+    ['Top 25 volunteers', { group: 'person', sort: 'hours', dir: 'desc', top: '25', who: 'volunteered' }],
+    ["Who hasn't volunteered", { group: 'person', who: 'not', sort: 'group', dir: 'asc', top: '' }],
+    ['Repeat volunteers (10+ times)', { group: 'person', minTimes: '10', sort: 'records', dir: 'desc', top: '' }],
+    ['One-time volunteers', { group: 'person', minTimes: '1', maxTimes: '1', sort: 'group', dir: 'asc', top: '' }],
+    ['Participation by branch', { group: 'branch', who: 'all', sort: 'participation', dir: 'desc', top: '' }],
+    ['Participation by department', { group: 'department', who: 'all', sort: 'participation', dir: 'desc', top: '' }],
+    ['Nonprofits we served', { group: 'nonprofit', sort: 'hours', dir: 'desc', top: '' }],
+    ['Hours by month', { group: 'month', sort: 'group', dir: 'asc', top: '' }],
+    ['Culture Committee', { group: 'person', committee: 'yes', who: 'all', sort: 'hours', dir: 'desc', top: '' }],
+    ['Friends and family', { kind: 'guests', top: '' }]
+  ];
+  const RB_COLS = {
+    group: 'Group', employees: 'Employees', participation: 'Participation', volunteers: 'Volunteers', records: 'Activities', hours: 'Hours', hours_each: 'Hours each', impact: 'Impact'
+  };
+
+  async function vBuilder() {
+    const o = await get('/admin/reports/options');
+    const saved = await get('/admin/reports/saved');
+    const p = Object.assign({ period: 'year', group: 'person', who: 'volunteered', sort: 'hours', dir: 'desc', top: '25', kind: 'hours' }, rbLoad());
+    if (p.period !== 'custom') [p.from, p.to] = rbPeriod(p.period, S.meta.today);
+    if (o.scope) p.market = String(o.scope);
+    const opt = (v, l, cur) => `<option value="${esc(v)}" ${String(cur ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`;
+    const branches = S.meta.branches.filter(b => !p.market || String(b.market_id) === String(p.market));
+    const roster = o.groups[p.group] && o.groups[p.group].roster;
+    const guests = p.kind === 'guests';
+    main.innerHTML = `<div class="btnrow noprint" style="justify-content:space-between"><h1>Report builder</h1><a class="btn ghost" href="#/admin/reports">Back to Reports</a></div>
+      <p class="muted noprint" style="margin:0">Pick what to look at, then run it. Export to a spreadsheet, print it, or save it to run again later. Approved hours only.</p>
+      <div class="toolbar noprint" aria-label="Quick start">${RB_TEMPLATES.map(([l], i) => `<button class="chip" data-tpl="${i}">${esc(l)}</button>`).join('')}</div>
+      ${saved.length ? `<div class="toolbar noprint" aria-label="Saved reports"><span class="flabel">Saved:</span>${saved.map(s => `<span class="chip" style="display:inline-flex;gap:8px;align-items:center"><button class="linkbtn" data-saved="${s.id}" style="all:unset;cursor:pointer">${esc(s.name)}</button><button data-del="${s.id}" aria-label="Delete ${esc(s.name)}" style="all:unset;cursor:pointer">×</button></span>`).join('')}</div>` : ''}
+      <form class="panel noprint" id="rbf">
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+          <div class="field"><label for="rk">Report</label><select class="input" id="rk" name="kind">${opt('hours', 'Volunteer hours', p.kind)}${opt('guests', 'Friends and family', p.kind)}</select></div>
+          <div class="field"><label for="rp">Period</label><select class="input" id="rp" name="period">${RB_PERIODS.map(([v, l]) => opt(v, l, p.period)).join('')}</select></div>
+          <div class="field"><label for="rf">From</label><input class="input" id="rf" name="from" type="date" value="${esc(p.from)}"></div>
+          <div class="field"><label for="rt">To</label><input class="input" id="rt" name="to" type="date" value="${esc(p.to)}"></div>
+          ${guests ? '' : `<div class="field"><label for="rg">Group by</label><select class="input" id="rg" name="group">${Object.entries(o.groups).map(([k, g]) => opt(k, g.label, p.group)).join('')}</select></div>
+          <div class="field"><label for="rw">Show</label><select class="input" id="rw" name="who" ${roster ? '' : 'disabled'}>${opt('volunteered', 'People who volunteered', p.who)}${opt('all', 'Everyone on the roster', p.who)}${opt('not', "Only who hasn't volunteered", p.who)}</select>${roster ? '' : '<small>Only for employee groups</small>'}</div>`}
+          <div class="field"><label for="rm">Market</label><select class="input" id="rm" name="market" ${o.scope ? 'disabled' : ''}>${opt('', 'All markets', p.market)}${S.meta.markets.map(m => opt(m.id, m.name, p.market)).join('')}</select></div>
+          ${guests ? '' : `<div class="field"><label for="rbr">Branch</label><select class="input" id="rbr" name="branch">${opt('', 'All branches', p.branch)}${branches.map(b => opt(b.id, b.name, p.branch)).join('')}</select></div>
+          <div class="field"><label for="rd">Department</label><select class="input" id="rd" name="department">${opt('', 'All departments', p.department)}${S.meta.departments.map(d => opt(d.id, d.name, p.department)).join('')}</select></div>
+          <div class="field"><label for="rti">Officer level / job group</label><select class="input" id="rti" name="title">${opt('', 'All', p.title)}${o.titles.map(t => opt(t, t, p.title)).join('')}</select></div>
+          <div class="field"><label for="ro">Officers</label><select class="input" id="ro" name="officer">${opt('', 'Officers and non-officers', p.officer)}${opt('yes', 'Officers only', p.officer)}${opt('no', 'Non-officers only', p.officer)}</select></div>
+          <div class="field"><label for="rc">Culture Committee</label><select class="input" id="rc" name="committee">${opt('', 'Everyone', p.committee)}${opt('yes', 'Committee members only', p.committee)}${opt('no', 'Not on the committee', p.committee)}</select></div>
+          <div class="field"><label for="rty">Type</label><select class="input" id="rty" name="otype">${opt('', 'All volunteering', p.otype)}${opt('community', 'Community (nonprofit)', p.otype)}${opt('bank', 'CNB events', p.otype)}</select></div>
+          <div class="field"><label for="rn">Nonprofit</label><select class="input" id="rn" name="nonprofit">${opt('', 'All nonprofits', p.nonprofit)}${o.nonprofits.map(n => opt(n, n, p.nonprofit)).join('')}</select></div>
+          ${o.cra ? `<div class="field"><label for="rcr">CRA</label><select class="input" id="rcr" name="cra">${opt('', 'All hours', p.cra)}${opt('any', 'Serves LMI or uses financial knowledge', p.cra)}${opt('qualifying', 'CRA qualifying (both)', p.cra)}</select></div>` : ''}
+          ${p.group === 'person' ? `<div class="field"><label for="rmin">Times volunteered</label><div style="display:flex;gap:6px;align-items:center"><input class="input" id="rmin" name="minTimes" type="number" min="1" placeholder="At least" value="${esc(p.minTimes || '')}"><span>to</span><input class="input" name="maxTimes" type="number" min="1" placeholder="At most" value="${esc(p.maxTimes || '')}" aria-label="At most"></div></div>` : ''}
+          <div class="field"><label for="rs">Sort by</label><select class="input" id="rs" name="sort">${Object.entries(RB_COLS).map(([k, l]) => opt(k, k === 'group' ? 'Name (A to Z)' : l, p.sort)).join('')}</select></div>
+          <div class="field"><label for="rdr">Order</label><select class="input" id="rdr" name="dir">${opt('desc', 'Most first', p.dir)}${opt('asc', 'Least first', p.dir)}</select></div>`}
+          <div class="field"><label for="rtop">How many rows</label><select class="input" id="rtop" name="top">${[['', 'All rows'], ['5', 'Top 5'], ['10', 'Top 10'], ['25', 'Top 25'], ['50', 'Top 50'], ['100', 'Top 100']].map(([v, l]) => opt(v, l, p.top)).join('')}</select></div>
+        </div>
+        <div class="btnrow"><button class="btn red" type="submit">Run report</button><button class="btn ghost" type="button" id="rbcsv">Export to spreadsheet (CSV)</button><button class="btn ghost" type="button" id="rbprint">Print or save as PDF</button><button class="btn ghost" type="button" id="rbsave">Save this report</button></div>
+      </form>
+      <div id="rbout"><p class="muted">Loading…</p></div>`;
+    const read = () => {
+      const f = formData($('#rbf'));
+      const q = Object.assign({}, p, f);
+      if (o.scope) q.market = String(o.scope);
+      if (q.period !== 'custom' && (f.from !== p.from || f.to !== p.to)) q.period = 'custom';
+      if (q.period !== 'custom') [q.from, q.to] = rbPeriod(q.period, S.meta.today);
+      return q;
+    };
+    const qs = q => new URLSearchParams(Object.entries(q).filter(([k, v]) => v !== '' && v != null && k !== 'period' && k !== 'kind').concat([['kind', q.kind || 'hours']])).toString();
+    const rerun = q => { rbSave(q); vBuilder.jump = true; vBuilder(); };
+    $('#rbf').addEventListener('change', e => { if (['kind', 'period', 'group', 'market'].includes(e.target.name)) { const q = read(); if (e.target.name === 'period' && q.period !== 'custom') [q.from, q.to] = rbPeriod(q.period, S.meta.today); if (e.target.name === 'market') q.branch = ''; if (e.target.name === 'group' && !o.groups[q.group].roster) q.who = 'volunteered'; if (e.target.name === 'group' && q.group !== 'person') { q.minTimes = ''; q.maxTimes = ''; } rerun(q); } });
+    $('#rbf').addEventListener('submit', e => { e.preventDefault(); rerun(read()); });
+    main.querySelectorAll('[data-tpl]').forEach(b => b.addEventListener('click', () => {
+      const t = RB_TEMPLATES[+b.dataset.tpl][1];
+      rerun(Object.assign({ period: p.period, from: p.from, to: p.to, kind: 'hours', market: o.scope ? String(o.scope) : p.market }, t));
+    }));
+    main.querySelectorAll('[data-saved]').forEach(b => b.addEventListener('click', () => { const s = saved.find(x => String(x.id) === b.dataset.saved); rerun(Object.assign({ kind: 'hours' }, s.params)); }));
+    main.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+      const s = saved.find(x => String(x.id) === b.dataset.del);
+      if (!window.confirm(`Delete the saved report "${s.name}"?`)) return;
+      try { await api('DELETE', '/admin/reports/saved/' + s.id); toast('Deleted.'); vBuilder(); } catch (err) { toast(err.message); }
+    }));
+    $('#rbcsv').addEventListener('click', () => { const q = read(); download('/admin/reports/custom?' + qs(q) + '&format=csv', `${q.kind === 'guests' ? 'friends-and-family' : 'report-' + q.group}-${q.from}-to-${q.to}.csv`); });
+    $('#rbprint').addEventListener('click', () => window.print());
+    $('#rbsave').addEventListener('click', async () => {
+      const name = window.prompt('Name this report so you can run it again (for example "Top 25 by branch").');
+      if (!name) return;
+      try { await api('POST', '/admin/reports/saved', { name, params: read() }); toast('Saved.'); vBuilder(); } catch (err) { toast(err.message); }
+    });
+    // Run it
+    let r;
+    try { r = await get('/admin/reports/custom?' + qs(p)); } catch (err) { $('#rbout').innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+    const filt = [];
+    const name = (list, id) => (list.find(x => String(x.id) === String(id)) || {}).name;
+    if (p.market) filt.push(name(S.meta.markets, p.market));
+    if (!guests) {
+      if (p.branch) filt.push(name(S.meta.branches, p.branch));
+      if (p.department) filt.push(name(S.meta.departments, p.department));
+      if (p.title) filt.push(p.title);
+      if (p.officer) filt.push(p.officer === 'yes' ? 'Officers' : 'Non-officers');
+      if (p.committee) filt.push(p.committee === 'yes' ? 'Culture Committee' : 'Not on the committee');
+      if (p.otype) filt.push(p.otype === 'community' ? 'Community volunteering' : 'CNB events');
+      if (p.nonprofit) filt.push(p.nonprofit);
+      if (p.cra) filt.push(p.cra === 'qualifying' ? 'CRA qualifying' : 'CRA related');
+      if (p.minTimes || p.maxTimes) filt.push(`Volunteered ${p.minTimes || 1}${p.maxTimes ? ' to ' + p.maxTimes : '+'} times`);
+    }
+    const when = `${new Date(p.from + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} to ${new Date(p.to + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}`;
+    const out = $('#rbout');
+    // On a phone the form is long, so jump to the results after a run.
+    if (vBuilder.jump && window.innerWidth < 760) setTimeout(() => out.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    vBuilder.jump = false;
+    if (guests) {
+      out.innerHTML = `<h2>Friends and family</h2><p class="muted" style="margin:0">${esc(when)}${filt.length ? ' · ' + esc(filt.join(' · ')) : ''}. Guests are people without an @cnbtx.com email, credited to the employee on the same team for that shift.</p>
+        <div class="kpis"><div class="kpi"><b>${r.total.guests}</b><span>Guests</span></div><div class="kpi"><b>${r.total.signups}</b><span>Guest sign-ups</span></div><div class="kpi"><b>${n1(r.total.hours)}</b><span>Guest volunteer hours</span></div><div class="kpi"><b>${r.total.hosts}</b><span>Employees who brought guests</span></div></div>
+        <div class="tablewrap"><table class="stbl tight"><thead><tr><th class="num">#</th><th>Employee who brought them</th><th>Branch</th><th class="num">Guests</th><th class="num">Guest sign-ups</th><th class="num">Guest hours</th></tr></thead><tbody>
+        ${r.rows.length ? r.rows.map(x => `<tr><td class="num">${x.rank ?? ''}</td><td>${esc(x.group)}</td><td>${esc(x.branch || '')}</td><td class="num">${x.guests}</td><td class="num">${x.signups}</td><td class="num">${n1(x.hours)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">No guests in this period.</td></tr>'}</tbody></table></div>`;
+      return;
+    }
+    const person = p.group === 'person';
+    const showRoster = r.rosterGroup && !person;
+    const cols = ['group', ...(showRoster ? ['employees', 'participation'] : []), 'volunteers', 'records', 'hours', 'hours_each', 'impact'].filter(c => !(person && (c === 'volunteers' || c === 'hours_each')));
+    const head = c => `<th class="${c === 'group' ? '' : 'num'}"><button class="linkbtn rbsort" data-sort="${c}" style="all:unset;cursor:pointer" aria-sort="${p.sort === c ? (p.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${c === 'group' ? esc(r.groupLabel) : RB_COLS[c]}${p.sort === c ? (p.dir === 'asc' ? ' ▲' : ' ▼') : ''}</button></th>`;
+    const cell = (x, c) => c === 'group' ? `<td>${esc(x.group)}${person && x.active === false ? ' <span class="pill">Former</span>' : ''}</td>` : `<td class="num">${c === 'participation' ? (x.participation == null ? '—' : x.participation + '%') : c === 'impact' ? money(x.impact) : c === 'hours' || c === 'hours_each' ? n1(x[c]) : x[c]}</td>`;
+    const drill = !person && r.rosterGroup;
+    const title = (RB_TEMPLATES.find(([, t]) => Object.entries(t).every(([k, v]) => String(p[k] ?? '') === String(v))) || [])[0] || `Volunteer hours by ${r.groupLabel.toLowerCase()}`;
+    out.innerHTML = `<h2>${esc(title)}</h2><p class="muted" style="margin:0">${esc(when)}${filt.length ? ' · ' + esc(filt.join(' · ')) : ''}${p.who === 'not' ? " · people who haven't volunteered" : p.who === 'all' ? ' · everyone on the roster' : ''}${p.top ? ' · top ' + p.top : ''}</p>
+      <div class="kpis"><div class="kpi"><b>${r.total.volunteers}</b><span>Employees who volunteered</span></div><div class="kpi"><b>${n1(r.total.hours)}</b><span>Volunteer hours</span></div><div class="kpi"><b>${money(r.total.impact)}</b><span>Impact</span><small>community hours × $${r.rate}</small></div><div class="kpi"><b>${r.total.groups}</b><span>Rows${p.top && r.total.groups > r.rows.length ? ` (showing ${r.rows.length})` : ''}</span></div></div>
+      ${drill ? '<p class="muted noprint" style="margin:0">Tap a row to see the people in it, including who hasn\'t volunteered.</p>' : ''}
+      <div class="tablewrap"><table class="stbl tight"><thead><tr><th class="num">#</th>${cols.map(head).join('')}${person ? '<th>Branch</th><th>Department</th><th>Officer level / job group</th>' : ''}</tr></thead><tbody>
+      ${r.rows.length ? r.rows.map(x => `<tr ${drill ? `data-drill="${esc(x.key)}" tabindex="0" role="button" style="cursor:pointer"` : ''}><td class="num">${x.rank}</td>${cols.map(c => cell(x, c)).join('')}${person ? `<td>${esc(x.branch || '')}</td><td>${esc(x.department || '')}</td><td>${esc(x.title || '')}</td>` : ''}</tr>`).join('') : `<tr><td colspan="${cols.length + (person ? 4 : 1)}" class="muted">Nothing matches these choices.</td></tr>`}
+      </tbody></table></div>`;
+    out.querySelectorAll('.rbsort').forEach(b => b.addEventListener('click', () => {
+      const c = b.dataset.sort; rerun(Object.assign({}, p, { sort: c, dir: p.sort === c ? (p.dir === 'asc' ? 'desc' : 'asc') : (c === 'group' ? 'asc' : 'desc') }));
+    }));
+    // Drill down: from a group to its people (who volunteered and who hasn't).
+    const pickDrill = key => {
+      const q = Object.assign({}, p, { group: 'person', who: 'all', sort: 'hours', dir: 'desc', top: '' });
+      const id = (list, nm) => { const m = list.find(x => x.name === nm); return m ? String(m.id) : ''; };
+      if (p.group === 'market') q.market = id(S.meta.markets, key);
+      if (p.group === 'branch') { if (key === '(no branch)') { toast("People without a branch can't be filtered yet."); return; } q.branch = id(S.meta.branches, key); }
+      if (p.group === 'department') { if (key === '(no department)') { toast("People without a department can't be filtered yet."); return; } q.department = id(S.meta.departments, key); }
+      if (p.group === 'officer') q.officer = key === 'Officers' ? 'yes' : 'no';
+      if (p.group === 'title') { if (key === '(none)') { toast("People without a title can't be filtered yet."); return; } q.title = key; }
+      if (p.group === 'committee') q.committee = key === 'Culture Committee' ? 'yes' : 'no';
+      rerun(q);
+    };
+    out.querySelectorAll('[data-drill]').forEach(tr => {
+      tr.addEventListener('click', () => pickDrill(tr.dataset.drill));
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickDrill(tr.dataset.drill); } });
+    });
   }
 
   async function vSettings() {
