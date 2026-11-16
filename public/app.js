@@ -59,9 +59,10 @@
       if (can('hours.approve')) items.push(['#/admin/approvals', 'Approvals', I.check]);
       if (can('people.view') || can('accounts.reset')) items.push(['#/admin/people', can('people.view') ? 'People' : 'Password resets', I.user]);
       if (can('reports.hours')) items.push(['#/admin/reports', 'Reports', I.chart]);
+      items.push(['/preview', 'Full preview', I.grid]);
       return items;
     }
-    return [['#/', 'Home', I.home], ['#/volunteer', 'Volunteer', I.heart], ['#/activity', 'My activity', I.cal], ['#/profile', 'Profile', I.user]];
+    return [['#/', 'Home', I.home], ['#/volunteer', 'Volunteer', I.heart], ['#/activity', 'My activity', I.cal], ['#/profile', 'Profile', I.user], ['/preview', 'Full preview', I.grid]];
   }
   function paintChrome(hash) {
     const signedIn = !!S.me && !S.me.must_change;

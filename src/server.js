@@ -50,6 +50,8 @@ function createApp() {
   app.use('/api', require('./routes/employee'));
   app.use('/api', (req, res) => res.status(404).json({ error: 'Not found.' }));
 
+  require('./preview')(app);
+
   app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }));
   app.get(/^\/(?!api\/).*/, (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
 
