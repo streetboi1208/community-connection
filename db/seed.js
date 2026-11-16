@@ -3,6 +3,7 @@
 // Creates fictional employees, one demo account per role, and sample opportunities.
 const { pool, one, q } = require('../src/db');
 const { migrate } = require('./migrate');
+const { importGalaxy } = require('./import-galaxy');
 const { hashPassword, tempPassword } = require('../src/auth');
 const { today } = require('../src/util');
 
@@ -93,4 +94,4 @@ async function seed() {
   for (const [u, pw] of creds) console.log(`  ${u.padEnd(18)} ${pw}`);
 }
 
-seed().then(() => pool.end()).catch(e => { console.error(e); process.exit(1); });
+seed().then(() => importGalaxy()).then(() => pool.end()).catch(e => { console.error(e); process.exit(1); });

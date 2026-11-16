@@ -1,5 +1,6 @@
 # Optional: one-click pilot hosting on Render (render.com) as a "Blueprint".
-# Creates the web app and a PostgreSQL database. Loads SAMPLE data on first start only.
+# Creates the web app and a PostgreSQL database. Loads sample events and demo accounts on first start,
+# then CNB's real Galaxy volunteer history (names, branch, hours; no contact details) from data/galaxy (Eddie, Nov 16 2026).
 # For production, host under a bank-owned account approved by Information Security.
 services:
   - type: web

@@ -140,13 +140,13 @@ r.get('/meta', async (req, res) => {
     many('SELECT id, name FROM departments ORDER BY name'),
     many('SELECT id, name, market_id FROM nonprofits ORDER BY name')
   ]);
-  res.json({ markets, branches, departments, nonprofits, sizes: SIZES, impactRate: Number(await setting('impact_rate', 30)), today: today() });
+  res.json({ markets, branches, departments, nonprofits, sizes: SIZES, impactRate: Number(await setting('impact_rate', 34.99)), today: today() });
 });
 
 // ---------- home ----------
 r.get('/home', async (req, res) => {
   const year = today().slice(0, 4);
-  const rate = Number(await setting('impact_rate', 30));
+  const rate = Number(await setting('impact_rate', 34.99));
   const mine = await one(
     `SELECT COALESCE(sum(minutes),0)::int AS min FROM hours WHERE employee_id=$1 AND status='approved' AND date >= $2::date`,
     [req.user.id, `${year}-01-01`]);
@@ -357,7 +357,7 @@ r.get('/resume', async (req, res) => {
   const me = await one(
     `SELECT e.first_name, e.last_name, e.title, e.hire_date, m.name AS market, b.name AS branch
        FROM employees e JOIN markets m ON m.id=e.market_id LEFT JOIN branches b ON b.id=e.branch_id WHERE e.id=$1`, [req.user.id]);
-  const rate = Number(await setting('impact_rate', 30));
+  const rate = Number(await setting('impact_rate', 34.99));
   const years = await many(
     `SELECT extract(year FROM date)::int AS year, round(sum(minutes)/60.0, 2)::float AS hours, count(*)::int AS entries,
             round((sum(minutes) FILTER (WHERE otype='community'))/60.0, 2)::float AS community_hours

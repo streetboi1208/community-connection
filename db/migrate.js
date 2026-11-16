@@ -57,7 +57,7 @@ async function migrate() {
     updated_at timestamptz NOT NULL DEFAULT now())`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('profile_check_months', '12') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO markets (name) VALUES ('Permian Basin'),('Lubbock'),('Dallas') ON CONFLICT DO NOTHING`);
-  await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '30') ON CONFLICT DO NOTHING`);
+  await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '34.99') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('helpdesk_email', '"ticket@cnbtx.com"') ON CONFLICT DO NOTHING`);
 }
 
