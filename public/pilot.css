@@ -1,6 +1,6 @@
 /* Pilot overrides: the prototype stylesheet drew the app inside a demo frame; the real app fills the screen. */
 .stage.web{padding:0}
-.stage.web .app{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;min-height:100vh;min-height:100dvh}
+.stage.web .app{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;overflow:visible;min-height:100vh;min-height:100dvh}
 .app{height:auto;overflow:visible}
 main{max-width:1180px;width:100%;margin:0 auto}
 .top{padding-top:max(14px,env(safe-area-inset-top,0px))}
@@ -43,3 +43,4 @@ body{margin:0}
 .top[hidden],.tabbar[hidden]{display:none!important}
 .ktile svg{width:28px;height:28px;color:var(--red)}
 .facts{margin:0}
+.top .avbtn{margin-left:auto}.top .nav + .modebtn{margin-left:0}
