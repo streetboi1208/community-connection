@@ -47,7 +47,8 @@ async function seed() {
     ['demo.marketing', ['mkt'], 'Permian Basin', 'Demo', 'Marketing'],
     ['demo.compliance', ['comp'], 'Permian Basin', 'Demo', 'Compliance'],
     ['demo.committee', ['ccm'], 'Permian Basin', 'Demo', 'Committee'],
-    ['demo.lubbock', ['mkta'], 'Lubbock', 'Demo', 'Lubbock Admin']
+    ['demo.lubbock', ['mkta'], 'Lubbock', 'Demo', 'Lubbock Admin'],
+    ['demo.helpdesk', ['it'], 'Permian Basin', 'Demo', 'Help Desk']
   ];
   const creds = [];
   for (const [u, roles, m, f, l] of demo) {

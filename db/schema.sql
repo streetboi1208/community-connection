@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS employees (
   show_name boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT roles_valid CHECK (roles <@ ARRAY['admin','mkt','comp','ccm','mkta']::text[])
+  CONSTRAINT roles_valid CHECK (roles <@ ARRAY['admin','mkt','comp','ccm','mkta','it']::text[])
 );
 CREATE INDEX IF NOT EXISTS employees_market_idx ON employees(market_id);
 
