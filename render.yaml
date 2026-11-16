@@ -5,6 +5,7 @@ services:
   - type: web
     name: community-connection-pilot
     runtime: node
+    plan: free        # $0; sleeps after 15 min idle. Change to starter for an always-on app.
     buildCommand: npm ci --omit=dev
     startCommand: node db/seed.js && node src/server.js
     healthCheckPath: /healthz
@@ -23,3 +24,4 @@ services:
         sync: false   # you type this in the Render dashboard; it becomes the password for the demo.* accounts
 databases:
   - name: community-connection-db
+    plan: free        # $0; Render deletes free databases after 30 days (+14-day grace). Upgrade to keep data.
