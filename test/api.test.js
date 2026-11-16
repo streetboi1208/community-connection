@@ -243,6 +243,7 @@ test('IT help desk can only find people and reset non-admin sign-ins', async () 
 
 test('sign-in page shows the help desk email once an admin sets it', async () => {
   const anon = new Client();
+  await q(`DELETE FROM settings WHERE key='helpdesk_email'`);
   assert.equal((await anon.get('/api/public-config')).data.helpdeskEmail, null);
   const a = await new Client().login('ana.admin');
   assert.equal((await a.req('PUT', '/api/admin/settings', { impact_rate: 30, helpdesk_email: 'not-an-email' })).status, 400);

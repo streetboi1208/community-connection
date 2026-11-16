@@ -10,6 +10,7 @@ async function migrate() {
   await pool.query(`ALTER TABLE employees ADD CONSTRAINT roles_valid CHECK (roles <@ ARRAY['admin','mkt','comp','ccm','mkta','it']::text[])`);
   await pool.query(`INSERT INTO markets (name) VALUES ('Permian Basin'),('Lubbock'),('Dallas') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '30') ON CONFLICT DO NOTHING`);
+  await pool.query(`INSERT INTO settings (key, value) VALUES ('helpdesk_email', '"ticket@cnbtx.com"') ON CONFLICT DO NOTHING`);
 }
 
 if (require.main === module) {
