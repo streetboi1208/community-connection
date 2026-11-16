@@ -355,7 +355,7 @@ r.get('/reports/participation', A.requirePerm('reports.hours'), async (req, res)
   const [from, to, year] = yearRange(req);
   const by = oneOf(req.query.by || 'market', 'Group by', ['market', 'branch', 'department', 'officer']);
   const m = A.marketScope(req.user);
-  const rate = Number(await setting('impact_rate', 30));
+  const rate = Number(await setting('impact_rate', 34.99));
   const grp = { market: 'mk.name', branch: "COALESCE(b.name,'(no branch)')", department: "COALESCE(d.name,'(no department)')", officer: "CASE WHEN e.officer THEN 'Officers' ELSE 'Non-officers' END" }[by];
   const rows = await many(
     `WITH h AS (SELECT employee_id, sum(minutes) AS min, sum(minutes) FILTER (WHERE otype='community') AS comm
@@ -488,7 +488,7 @@ r.post('/profile-requests/:id/decide', A.requirePerm('people.edit'), async (req,
 
 // ================= Settings =================
 r.get('/settings', A.requirePerm('settings.edit'), async (req, res) => {
-  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', ''),
+  res.json({ impact_rate: Number(await setting('impact_rate', 34.99)), helpdesk_email: await setting('helpdesk_email', ''),
     profile_check_months: Number(await setting('profile_check_months', 12)) });
 });
 r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {

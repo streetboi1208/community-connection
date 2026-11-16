@@ -1,0 +1,445 @@
+emp_no,first_name,last_name,market,branch,department,title,officer,active,culture_committee,market_assumed
+G-R001,Adalynn,Bujanda,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R002,Alan,Kaup,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-R003,Alejandra,Barrios,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V211,Alejandro,Gomez,Permian Basin,,,Non-officer,no,yes,No,no
+G-V052,Alesha,Echols,Permian Basin,Odessa HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V161,Alex,Rodriguez,Permian Basin,Midland HQ,Loan Ops,VP,yes,yes,No,no
+G-V229,Alexis,Gonzalez,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-R004,Alexis,Velazquez,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V024,Alexis,Velazquez,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-R005,Alexis,Zuniga,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V241,Alfonso,Aragon Ferrer,Permian Basin,Odessa HQ,Credit Analyst,Non-officer,no,no,No,no
+G-V054,Alfonso,Ferrer,Permian Basin,Odessa HQ,,Non-officer,no,yes,No,no
+G-V123,Aline,Valenzuela,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-R006,Alisha,Marshall,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V242,Alisha,Marshall,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-V171,Alize,Holguin,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-V081,Allison,Bliss,Dallas,,Admin,EVP or SVP,yes,yes,No,no
+G-V132,Alondra,Romero,Permian Basin,Tremont,,Head Teller,no,yes,No,no
+G-V129,Alondra,Varela,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-R007,Alyssa,Navarro,Permian Basin,,,Non-officer,no,yes,No,no
+G-V218,Alyssa,Navarro,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-R008,Alyssa,Scott,Permian Basin,Remote,,Non-officer,no,yes,No,yes
+G-V104,Amanda,Diaz,Permian Basin,A Street,Branch Ops,Head Teller,no,yes,No,no
+G-V127,Amanda,Olvera,Permian Basin,Midland HQ,Compliance,Non-officer,no,yes,No,no
+G-V108,Amanda,Stevenson,Dallas,Dallas HQ,,VP,yes,yes,No,no
+G-V142,Amanda,Swartz,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,New Accounts,no,yes,No,no
+G-V006,Amanda,Tremble,Permian Basin,Midland HQ,IT,SVP,yes,yes,No,no
+G-V212,Amber,Chandler,Permian Basin,Midland HQ,Loan Ops,Bank officer,yes,yes,No,no
+G-R009,Amber,Prieto,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-V115,Amy,Gamboa,Permian Basin,,HR,Non-officer,no,yes,No,no
+G-V220,Ana,Lara,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V014,Ana,Rodriguez,Permian Basin,Plaza Oaks,,Head Teller,no,yes,Yes,no
+G-V070,Ana,Wood,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V181,Anahi,Saenz,Permian Basin,,,Non-officer,no,yes,No,no
+G-R010,Andrea,Atkins,Permian Basin,Midland Drive,,Teller,no,yes,No,no
+G-V223,Andrea,Avena,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-V094,Andrya,Kahm,Permian Basin,Midland HQ,,Teller,no,yes,No,no
+G-V162,Angel,Salas,Permian Basin,,,Non-officer,no,yes,No,no
+G-V028,Anna,Gomez,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,Yes,no
+G-V205,Anthony,Hamp,Dallas,,,EVP or SVP,yes,yes,No,no
+G-V051,April,Muniz,Permian Basin,,Lending Assistants,EVP or SVP,yes,yes,Yes,no
+G-R011,Arais,Hernandez,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V233,Areceli,Romero,Permian Basin,,,Non-officer,no,yes,No,no
+G-V151,Ariel,Garcia,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V224,Arriana,Harmon,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-R012,Ashanti,Williams,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R013,Ashley,Faria,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V125,Ashley,Gutierrez,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V050,Ashley,Jackson,Permian Basin,Midland HQ,Branch Ops,Bank officer,yes,yes,No,no
+G-R014,Ashley,Johnson,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V243,Avery,Azuna,Lubbock,Lubbock HQ + Milwaukee,Credit Analyst,Non-officer,no,no,No,no
+G-V048,Barrett,McLanahan,Dallas,Dallas HQ,Branch Ops,New Accounts,no,yes,No,no
+G-V244,Becky,Taylor,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,VP,yes,no,No,no
+G-V194,Berry,Pigg,Lubbock,Lubbock HQ + Milwaukee,Lending,SVP,yes,yes,No,no
+G-R015,Bertha,Wallace,Permian Basin,Florida,,Teller,no,yes,No,no
+G-V025,Beverly,Pertile,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-V301,Biana,Lopez,Permian Basin,Odessa HQ,,Teller,no,no,No,no
+G-V107,Bianca,Lopez,Permian Basin,Odessa HQ,,New Accounts,no,yes,No,no
+G-R016,Bill,Stovall,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V245,Bill,Stovall,Permian Basin,Midland HQ,,EVP or SVP,yes,no,No,no
+G-R017,Blaine,Leonard,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R018,Blake,Cauthen,Permian Basin,,Lending,Non-officer,no,yes,No,yes
+G-V074,Blake,Cauthen,Permian Basin,Midland HQ,Lending,SVP,yes,yes,No,no
+G-V098,Blanca,McNatt,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V141,Brad,Bullock,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-R019,Brad,Schneider,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R020,Brad's,Plus One,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V011,Brandi,Ramirez,Permian Basin,Midland HQ,Mortgage,Non-officer,no,yes,Yes,no
+G-R021,Brandi's,Husband,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V185,Brayson,Justiss,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-R022,Brenda,Galindo,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R023,Briana,Marta,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V246,Briana,Marta,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-V247,Brittany,Piedra,Permian Basin,Odessa HQ,Branch Ops,Teller,no,no,No,no
+G-V124,Brooklyn,Sanchez,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R024,Brree,Carter,Permian Basin,Remote,,Non-officer,no,yes,No,yes
+G-V106,Bryce,Gabriel,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R025,Bryce,Mayo,Permian Basin,,Admin,Non-officer,no,yes,No,yes
+G-V031,Bryce,Mayo,Permian Basin,Midland HQ,Admin,VP,yes,yes,No,no
+G-V214,Bryce,Mayo,Permian Basin,,Admin,Non-officer,no,yes,No,no
+G-R026,Caio,Lima Toth,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V248,Callie,-,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,no,No,no
+G-V249,Candice,Smith,Permian Basin,Midland HQ,Branch Ops,Non-officer,no,no,No,no
+G-R027,Carl,Milam,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V250,Carrie,-,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,no,No,no
+G-R028,Cathi,Echols,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V057,Cathy,Thames,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-V155,Cecilia,Soria,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-V016,Celeste,Aguero,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,yes,Yes,no
+G-R029,Cesar,Vera,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R030,Chad,Chandler English,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V251,Charla,Ann Mulanax,Permian Basin,Midland HQ,Bank Ops,VP,yes,no,No,no
+G-V083,Charla,Mulanax,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-V158,Charlie,Gonzales,Permian Basin,,,Non-officer,no,yes,No,no
+G-V149,Chloe,Bentancourt,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-V252,Chris,Hart,Permian Basin,Midland HQ,Mortgage,SVP,yes,no,No,no
+G-V109,Christian,Flores,Dallas,Dallas HQ,,AVP,yes,yes,No,no
+G-V121,Christian,Olivas,Permian Basin,Plaza Oaks,,New Accounts,no,yes,No,no
+G-V197,Christie,Tillis,Permian Basin,Midland HQ,Mortgage,Non-officer,no,yes,No,no
+G-V235,Christieanna,Valenzuela,Permian Basin,Cuthbert,,Teller,no,yes,No,no
+G-R031,Christine,Hart,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-V009,Christopher,McGinnis,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-V221,Ciara,Graham,Permian Basin,,,Non-officer,no,yes,No,no
+G-V077,Cindy,Villa,Permian Basin,Midland HQ,Branch Ops,Non-officer,no,yes,No,no
+G-V182,Cindy,Wood,Permian Basin,Stanton,Branch Ops,AVP,yes,yes,No,no
+G-V085,Claudia,Nesbitt,Dallas,Dallas HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V126,Corina,Ochoa,Permian Basin,Florida,Branch Ops,Non-officer,no,yes,No,no
+G-V076,Cristella,Harris,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R032,Cristian,Machuca,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R033,Cristina,Monje,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V059,Crystal,Helweg,Permian Basin,Midland HQ,Mortgage,Non-officer,no,yes,No,no
+G-V253,Crystal,Leigh Wagoner,Permian Basin,Midland HQ,Compliance,SVP,yes,no,No,no
+G-V032,Crystal,Rodriguez,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-V069,Crystal,Venzor,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V239,Crystal,Wagoner,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-R034,Culture,Committee,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V037,Daisy,Solis,Permian Basin,Midland HQ,Credit Analyst,AVP,yes,yes,No,no
+G-R035,Dana,Gonzales,Permian Basin,Midland HQ,Mortgage,Non-officer,no,yes,No,no
+G-V254,Dana,Gonzales,Permian Basin,Midland HQ,Mortgage,Non-officer,no,no,No,no
+G-V255,Dani,Ruiz,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,no,No,no
+G-V160,Daniel,Navarro,Permian Basin,,,Non-officer,no,yes,No,no
+G-R036,Daniela,Holguin,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V119,Danielle,Carrasco,Permian Basin,,Loan Ops,EVP or SVP,yes,yes,Yes,no
+G-V091,Danielle,Rodriguez,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,No,no
+G-V196,Danielle,Ruiz,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V256,Danita,Reyna,Permian Basin,Midland HQ,Mortgage,Non-officer,no,no,No,no
+G-R037,David,Black,Permian Basin,Tremont,,VP,yes,yes,No,no
+G-R038,David,Morton,Dallas,Dallas HQ,,Bank officer,yes,yes,No,no
+G-V110,Deborah,Enriquez,Permian Basin,Odessa HQ,,Head Teller,no,yes,No,no
+G-R039,Debra,Gurley,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V061,Debra,Ortega,Permian Basin,Midland HQ,Accounting,Non-officer,no,yes,No,no
+G-V060,Debra,Rushing,Permian Basin,Midland HQ,Accounting,Non-officer,no,yes,No,no
+G-R040,Delilah,Perez,Permian Basin,Cuthbert,,Teller,no,yes,No,no
+G-V017,Delilah,Rodriguez,Permian Basin,Cuthbert,Branch Ops,AVP,yes,yes,No,no
+G-V219,Denise,Tisdale,Permian Basin,,,VP,yes,yes,No,no
+G-V131,Destiny,Spalla,Permian Basin,Midland HQ,,Teller,no,yes,No,no
+G-V029,Devani,Ramirez,Permian Basin,Odessa HQ,Branch Ops,Branch Manager,no,yes,No,no
+G-R041,Devyn,Mendoza,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R042,Diana,Carrasco,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R043,Diana,Deanda,Permian Basin,Midland HQ,,Bank officer,yes,yes,No,no
+G-V022,Diana,Hernandez,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-R044,Dijonay,Quintero,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R045,Dolores,Gomez,Permian Basin,,Lending,Non-officer,no,yes,No,yes
+G-V042,Dolores,Gomez,Permian Basin,Florida,Lending,VP,yes,yes,No,no
+G-V173,Drake,Emery,Lubbock,Lubbock HQ + Milwaukee,,Non-officer,no,yes,No,no
+G-V226,Drew,Berry,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V001,Eddie,Montoya,Permian Basin,,Admin,SVP,yes,yes,Yes,no
+G-V167,Eddie,Mulanax,Permian Basin,,,Non-officer,no,yes,No,no
+G-R046,Edna,Lozoya,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R047,Eduardo,Diaz,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V230,Eduardo,Diaz,Permian Basin,,,Non-officer,no,yes,No,no
+G-V236,Elidia,Najera,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-V072,Elizabeth,Anderson,Permian Basin,Midland HQ,HR,SVP,yes,yes,No,no
+G-R048,Elizabeth,Gonzales,Permian Basin,Odessa HQ,,Teller,no,yes,No,no
+G-R049,Elva,Ybarra,Permian Basin,Stanton,,Head Teller,no,yes,No,no
+G-V137,Emiley,Porter,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Teller,no,yes,No,no
+G-R050,Emilia,Vill,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V188,Emily,Gibb,Permian Basin,Midland HQ,,New Accounts,no,yes,No,no
+G-V062,Emily,Ing,Permian Basin,Midland HQ,,Teller,no,yes,No,no
+G-V176,Emily,Todd,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Teller,no,yes,No,no
+G-R051,Emma,Rojas,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V036,Eric,Fortner,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-R052,Esequiel,Barrios,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V116,Estela,Urias,Permian Basin,Plaza Oaks,,Teller,no,yes,No,no
+G-V134,Eva,Vigil,Permian Basin,Midland HQ,,Bank officer,yes,yes,No,no
+G-R053,Evelyn,Varela,Permian Basin,Midland Drive,,Teller,no,yes,No,no
+G-V156,Evenet,Covos,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-R054,Felicity,Rodriguez,Permian Basin,A Street,,Teller,no,yes,No,no
+G-R055,Franchesca,Jones,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V144,Garrett,Wahl,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,New Accounts,no,yes,No,no
+G-V015,Gina,Quiroz,Permian Basin,Midland HQ,Bank Ops,VP,yes,yes,No,no
+G-V002,Gisela,Alvarado,Permian Basin,Midland HQ,Compliance,Non-officer,no,yes,Yes,no
+G-R056,Gisela,Rodriguez,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V097,Gisela,Rodriguez,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-V130,Giselle,Flores,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-V044,Gloria,Tavarez-dolbow,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V043,Griselda,Gaytan,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-V055,Griselda,Leyva,Permian Basin,Midland HQ,Loan Ops,Bank officer,yes,yes,No,no
+G-V136,Halle,Munson,Lubbock,Lubbock HQ + Milwaukee,,Non-officer,no,yes,No,no
+G-R057,Halle,Snyder,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V222,Halle,Snyder,Permian Basin,,,Non-officer,no,yes,No,no
+G-V018,Hanna,Argolan,Permian Basin,Midland HQ,Branch Ops,AVP,yes,yes,No,no
+G-V217,Harlton,Hemphill,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-V257,Heather,Glenn,Lubbock,Lubbock HQ + Milwaukee,Mortgage,AVP,yes,no,No,no
+G-V258,Imelda,Jimenez,Permian Basin,Midland HQ,Mortgage,Non-officer,no,no,No,no
+G-R058,Iona,Redmon,Permian Basin,Odessa HQ,,Teller,no,yes,No,no
+G-R059,Irma,Flores,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R060,Irma,Rubio,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V067,Italy,Butler,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V216,Ivan,Rodriguez,Dallas,,,EVP or SVP,yes,yes,No,no
+G-V177,Jace,Elliott,Lubbock,Lubbock HQ + Milwaukee,,Non-officer,no,yes,No,no
+G-V049,Jack,Sowell,Dallas,Dallas HQ,,Non-officer,no,yes,No,no
+G-V259,Jack,Steven Sowell,Dallas,Dallas HQ,Credit Analyst,Non-officer,no,no,No,no
+G-R061,Jacob,Hooper,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-R062,Jacob,Lambert,Permian Basin,,,Non-officer,no,yes,No,no
+G-R063,Jadalynn,Juarez,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V260,Jaden,Cain Rosas,Permian Basin,Midland HQ,Branch Ops,New Accounts,no,no,No,no
+G-R064,Jaden,Rosas,Permian Basin,Midland HQ,,New Accounts,no,yes,No,no
+G-V261,Jakkia,Brooks-saddler,Permian Basin,Odessa HQ,Mortgage,Non-officer,no,no,No,no
+G-V082,Jakob,Hickman,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,yes,No,no
+G-R065,James,Cascade,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V089,James,Griffith,Permian Basin,,,Non-officer,no,yes,No,no
+G-V080,Jami,Hastings,Permian Basin,Midland Drive,Branch Ops,Bank officer,yes,yes,No,no
+G-R066,Janet,Elliott,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V227,Janet,Hughes,Permian Basin,Remote,Accounting,SVP,yes,yes,No,no
+G-V122,Janie,Murillo,Permian Basin,Odessa HQ,Branch Ops,AVP,yes,yes,No,no
+G-V262,Jasmine,-,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Teller,no,no,No,no
+G-V215,Jay,Sudderth,Dallas,Dallas HQ,,SVP,yes,yes,No,no
+G-V195,Jayanthi,Sivakumar,Permian Basin,Midland HQ,Compliance,AVP,yes,yes,No,no
+G-R067,Jazlynn,Benavides,Permian Basin,Florida,,Teller,no,yes,No,no
+G-R068,Jeb,Hughes,Permian Basin,Midland HQ,Admin,Non-officer,no,yes,No,no
+G-V165,Jeb,Hughes,Permian Basin,,Admin,Non-officer,no,yes,No,no
+G-V079,Jeni,Lopez,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-V225,Jennifer,Balderrama,Permian Basin,Florida,,Teller,no,yes,No,no
+G-R069,Jennifer,Pena,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R070,Jennifer,Radloff,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V153,Jennifer,Salazar,Permian Basin,Odessa HQ,,Teller,no,yes,No,no
+G-R071,Jensel,Chavez,Permian Basin,Midland HQ,,Bank officer,yes,yes,No,no
+G-V111,Jeremy,Linebarger,Permian Basin,Midland HQ,IT,AVP,yes,yes,No,no
+G-R072,Jesse,Ochoa,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R073,Jessica,Sanchez,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,No,no
+G-V263,Jessica,Sanchez,Permian Basin,Midland HQ,Solutions,Non-officer,no,no,No,no
+G-V027,Jesus,Barron,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,No,no
+G-R074,Jillian,Leonard,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R075,Jocelyn,Hernandez,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V169,Jonathan,Sly,Permian Basin,Midland HQ,Compliance,Non-officer,no,yes,No,no
+G-R076,Joyce,Crosby,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-V056,Joycelyne,Rodriguez,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V264,Judy,Lynn Perez,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-R077,Judy,Perez,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V118,Julio,Cortez,Permian Basin,Midland HQ,Branch Ops,VP,yes,yes,No,no
+G-R078,Junior,Garcia,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R079,Justin,Laforge,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V184,Kaitlyn,Garcia,Permian Basin,Stanton,Branch Ops,Teller,no,yes,No,no
+G-R080,Kaitlyn,Quiroz,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V034,Kalista,Cazares,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V003,Kami,Little,Permian Basin,Midland HQ,Compliance,AVP,yes,yes,No,no
+G-R081,Karen,A,Permian Basin,,,Non-officer,no,yes,No,no
+G-R082,Karen,Aly,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V265,Karen,Aly,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-V053,Karla,Fabela,Permian Basin,Odessa HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-R083,Karla,Nichols,Permian Basin,Florida,,Teller,no,yes,No,no
+G-R084,Karlie,Harter,Lubbock,Lubbock HQ + Milwaukee,Credit Analyst,Non-officer,no,yes,No,no
+G-V266,Karlie,Harter,Lubbock,Lubbock HQ + Milwaukee,Credit Analyst,Non-officer,no,no,No,no
+G-V040,Kathleen,Montes,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V172,Kathy,Johnson,Permian Basin,Florida,Branch Ops,Non-officer,no,yes,No,no
+G-V237,Katie,Juarez,Permian Basin,,,Non-officer,no,yes,No,no
+G-V174,Kelby,Hightower,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-V234,Kelly,Robinson,Permian Basin,Midland HQ,IT,SVP,yes,yes,No,no
+G-V005,Kendra,Leonard,Permian Basin,,Admin,EVP or SVP,yes,yes,No,no
+G-R085,Kevin,Robles,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V147,Kinsley,Riddle,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,yes,No,no
+G-V012,Kizzie,Wilson,Permian Basin,,IT,Bank officer,yes,yes,No,no
+G-V139,Kolson,Earls,Dallas,Dallas HQ,Credit Analyst,Non-officer,no,yes,No,no
+G-V140,Kortney,Benally,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,yes,No,no
+G-V267,Kristen,Elaine Phipps,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-V201,Kristen,Phipps,Permian Basin,Midland HQ,,Bank officer,yes,yes,No,no
+G-R086,Kristi,Evers,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,No,no
+G-V268,Kristi,Evers,Permian Basin,Midland HQ,Solutions,Non-officer,no,no,No,no
+G-V105,Kylie,Ellison,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V269,Kylie,Renea Ellison,Permian Basin,Midland HQ,Solutions,Non-officer,no,no,No,no
+G-R087,Lakendria,Mackey,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V189,Laramie,Gilbert,Lubbock,Lubbock HQ + Milwaukee,,Non-officer,no,yes,No,no
+G-V020,Laresa,Lopez,Permian Basin,Midland HQ,Compliance,Non-officer,no,yes,No,no
+G-V270,Larmie,Gilbert,Lubbock,Lubbock HQ + Milwaukee,Credit Analyst,Non-officer,no,no,No,no
+G-R088,Latonya,Polk,Permian Basin,Florida,,Teller,no,yes,No,no
+G-R089,Launched,List Access,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V033,Lauren,Hoeffner,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Bank officer,yes,yes,No,no
+G-R090,Lea,Christman,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V190,Lea,Mjertan,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,yes,No,no
+G-R091,Leonela,Galindo,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R092,Lesa,Benton,Permian Basin,Tremont,,Teller,no,yes,No,no
+G-V271,Leslie,Hale Mariscal,Permian Basin,Florida,Branch Ops,VP,yes,no,No,no
+G-V202,Leslie,Mariscal,Permian Basin,Florida,,VP,yes,yes,No,no
+G-V183,Lexie,Perez,Permian Basin,Stanton,Branch Ops,New Accounts,no,yes,No,no
+G-V096,Liliana,Alvarez,Permian Basin,A Street,Branch Ops,Head Teller,no,yes,No,no
+G-V046,Linda,Mathis,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V272,Lindsay,Erin Ridgeway,Permian Basin,Midland HQ,Accounting,SVP,yes,no,No,no
+G-V112,Lindsay,Ridgeway,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-V159,Liz,Mayo,Permian Basin,,,Non-officer,no,yes,No,no
+G-V035,Liz,Rodriguez,Permian Basin,Florida,Branch Ops,Non-officer,no,yes,No,no
+G-V066,Lizeth,Hernandez,Permian Basin,Midland Drive,,Teller,no,yes,No,no
+G-V117,Lizett,Leyva,Permian Basin,Midland HQ,Compliance,AVP,yes,yes,No,no
+G-R093,Lorelei,Rodriguez,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V203,Lorena,Andrews,Permian Basin,Midland HQ,Loan Ops,SVP,yes,yes,No,no
+G-V075,Lorenzo,Lopez,Permian Basin,,,Non-officer,no,yes,No,no
+G-R094,Loretta,Carter,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R095,Lyndia,Benton,Permian Basin,Florida,,AVP,yes,yes,No,no
+G-V175,Lynn,Markham,Lubbock,Lubbock HQ + Milwaukee,Credit Analyst,Bank officer,yes,yes,No,no
+G-R096,Mackenzie,Blount,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V086,Mackynlie,Conklin,Permian Basin,,Admin,EVP or SVP,yes,yes,No,no
+G-R097,Madison,Montez,Permian Basin,Midland HQ,Branch Ops,New Accounts,no,yes,No,no
+G-V299,Madison,Montez,Permian Basin,Midland HQ,Branch Ops,New Accounts,no,no,No,no
+G-V095,Makayla,Hendriex,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V146,Makenzie,Pogue,Lubbock,Lubbock HQ + Milwaukee,Lending,Bank officer,yes,yes,No,no
+G-V084,Marcus,Hernandez,Dallas,Dallas HQ,,Non-officer,no,yes,No,no
+G-V274,Marcus,Tiburon Hernandez,Dallas,Dallas HQ,Credit Analyst,Non-officer,no,no,No,no
+G-V145,Mari,Sanchez,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-V088,Maria,Griffith,Permian Basin,Midland HQ,Solutions,Bank officer,yes,yes,No,no
+G-V041,Mariana,Castillo,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-R098,Maribel,Salazar Ruiz,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V199,Marisa,Granado,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V133,Marisela,Ornelas,Permian Basin,Midland Drive,Branch Ops,New Accounts,no,yes,No,no
+G-V038,Martha,Manriquez,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,Yes,no
+G-V013,Martha,Salgado,Permian Basin,Florida,Branch Ops,New Accounts,no,yes,Yes,no
+G-V275,Mary,Ann Lopez,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-R099,Mary,Ellen Franco,Permian Basin,Midland HQ,,New Accounts,no,yes,No,no
+G-V103,Mary,Ellen Franco,Permian Basin,,,Non-officer,no,yes,No,no
+G-V273,Mary,Guzman,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,no,No,no
+G-V208,Mary,Lopez,Permian Basin,Tremont,,Non-officer,no,yes,No,no
+G-V138,Mary,Lynn Deleon,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Teller,no,yes,No,no
+G-R100,Mary,Navarrette,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R101,Mary,Ramirez,Permian Basin,Cuthbert,,Teller,no,yes,No,no
+G-R102,Mary,Tarango,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V276,Mary,Tarango,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,no,No,no
+G-V008,Mathew,Quezada,Permian Basin,Midland HQ,IT,Non-officer,no,yes,No,no
+G-V150,Matthew,Barnett,Permian Basin,Midland HQ,,Bank officer,yes,yes,No,no
+G-V277,Matthew,Blake Barnett,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,no,No,no
+G-R103,Mayela,Reyna,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V200,Meagan,Chavarria,Permian Basin,Cuthbert,Branch Ops,Teller,no,yes,Yes,no
+G-V154,Meg,Gann,Permian Basin,Midland HQ,Admin,Non-officer,no,yes,No,no
+G-V278,Meiko,Guiterrez,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,no,No,no
+G-V164,Meiko,Gutierrez,Lubbock,Lubbock HQ + Milwaukee,,Non-officer,no,yes,No,no
+G-V047,Melanie,Hunter,Dallas,Dallas HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V228,Melany,Guthrie,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Teller,no,yes,No,no
+G-V135,Melissa,Galindo,Permian Basin,Tremont,,Teller,no,yes,No,no
+G-V152,Melissa,Johnson,Permian Basin,Odessa HQ,Mortgage,VP,yes,yes,No,no
+G-V210,Melissa,Johnson,Permian Basin,,Mortgage,Non-officer,no,yes,No,no
+G-R104,Melissa,Rodriguez,Permian Basin,Midland HQ,Compliance,AVP,yes,yes,No,no
+G-V279,Melissa,Rodriguez,Permian Basin,Midland HQ,Compliance,AVP,yes,no,No,no
+G-V157,Mercedes,Lozano,Permian Basin,Midland Drive,,Teller,no,yes,No,no
+G-V093,Mia,Rivera,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,Yes,no
+G-V213,Mia,Rivera,Permian Basin,,Solutions,Non-officer,no,yes,No,no
+G-V058,Michelle,Floyd,Permian Basin,Midland HQ,Mortgage,VP,yes,yes,No,no
+G-V120,Misty,Ketcherside,Permian Basin,Plaza Oaks,Branch Ops,AVP,yes,yes,No,no
+G-V065,Monique,Carrasco,Permian Basin,Plaza Oaks,,Teller,no,yes,No,no
+G-R105,Morgan,Janisch,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V280,Myles,Grant Tipton,Dallas,Dallas HQ,Credit Analyst,Non-officer,no,no,No,no
+G-R106,Myles,Tipton,Dallas,Dallas HQ,,Non-officer,no,yes,No,no
+G-V045,Natalie,Marroquin,Permian Basin,A Street,,Teller,no,yes,No,no
+G-V087,Nathan,Etheridge,Permian Basin,,,Non-officer,no,yes,No,no
+G-V068,Nayeli,Benavides,Permian Basin,Midland Drive,,Teller,no,yes,No,no
+G-V039,Nichole,Navarro,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R107,Nichole,Wells,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V191,Nikki,Weaver,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,Bank officer,yes,yes,No,no
+G-V193,Noah,Rodriquez,Lubbock,Lubbock HQ + Milwaukee,,New Accounts,no,yes,No,no
+G-V100,Nuvia,Sanchez,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-R108,Nydia,Baiza,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R109,Olivia,Vega,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V170,Oswaldo,Merlan,Dallas,,,EVP or SVP,yes,yes,No,no
+G-V281,Pam,Cannon,Permian Basin,Tremont,Branch Ops,AVP,yes,no,No,no
+G-V180,Pamela,Cannon,Permian Basin,Tremont,,AVP,yes,yes,No,no
+G-V282,Parker,William Towns,Dallas,Dallas HQ,Lending,VP,yes,no,No,no
+G-V186,Peyton,Sifrit,Lubbock,Lubbock HQ + Milwaukee,Admin,Non-officer,no,yes,No,no
+G-R110,Plus,One (jeb),Permian Basin,,,Non-officer,no,yes,No,yes
+G-R111,Priscilla,Sanchez,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V128,Rachel,Meurer,Permian Basin,Tremont,,Teller,no,yes,No,no
+G-V232,Rachel,Stone,Permian Basin,,,Non-officer,no,yes,No,no
+G-R112,Randy,Quiroz,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V078,Raul,Stevens,Permian Basin,Midland HQ,Lending,Bank officer,yes,yes,No,no
+G-R113,Ray,Ramirez,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V073,Rebecca,Caudill,Permian Basin,Midland HQ,HR,Non-officer,no,yes,No,no
+G-V204,Renee,Rivera,Permian Basin,Florida,Lending,VP,yes,yes,No,no
+G-V114,Rhonda,Medellin,Permian Basin,Midland HQ,Branch Ops,SVP,yes,yes,No,no
+G-R114,Rhonda's,Plus One,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R115,Ricardo,Salinas,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V166,Ricardo,Salinas,Permian Basin,,,Non-officer,no,yes,No,no
+G-V238,Ricardo,Salinas,Permian Basin,,,Non-officer,no,yes,No,no
+G-V101,Richele,Flournoy,Permian Basin,,,Non-officer,no,yes,No,no
+G-R116,Riley,Justice,Permian Basin,Midland HQ,Credit Analyst,Bank officer,yes,yes,No,no
+G-V283,Riley,Justice,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,no,No,no
+G-R117,Robin,Kirkland,Permian Basin,Midland HQ,,AVP,yes,yes,No,no
+G-V207,Roel,Ramos,Permian Basin,,,Non-officer,no,yes,No,no
+G-R118,Rosa,Almanza,Permian Basin,Tremont,,New Accounts,no,yes,No,no
+G-R119,Roy,Baiza,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V007,Ruben,Barragan,Permian Basin,Midland HQ,IT,Non-officer,no,yes,No,no
+G-V284,Rubi,Morales Rodriguez,Permian Basin,Florida,Branch Ops,Teller,no,no,No,no
+G-V113,Ryan,Lovell,Permian Basin,Midland HQ,Accounting,Non-officer,no,yes,No,no
+G-V209,Sabas,Ruiz,Permian Basin,,,Non-officer,no,yes,No,no
+G-V285,Samantha,E Ramos,Permian Basin,Midland Drive,Mortgage,Bank officer,yes,no,No,no
+G-V187,Samantha,Heidelberg,Permian Basin,Stanton,,Teller,no,yes,No,no
+G-V286,Samantha,Ornelas,Permian Basin,Midland HQ,Branch Ops,Teller,no,no,No,no
+G-V206,Samantha,Ramos,Permian Basin,Midland Drive,,Bank officer,yes,yes,No,no
+G-R120,Samantha,Vasquez,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,yes,No,no
+G-V287,Samantha,Vasquez,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,no,No,no
+G-V198,Sara,Combs,Permian Basin,Midland HQ,Loan Ops,Non-officer,no,yes,No,no
+G-V064,Saraiah,Heller,Permian Basin,Midland HQ,,Teller,no,yes,No,no
+G-V288,Selena,M Martinez,Permian Basin,Midland HQ,Solutions,VP,yes,no,No,no
+G-V021,Selena,Salcido,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-V179,Sergio,Lozano,Permian Basin,,,EVP or SVP,yes,yes,No,no
+G-V023,Shaida,Lucero,Permian Basin,Midland HQ,,Non-officer,no,yes,Yes,no
+G-V289,Shaida,Salas Lucero,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,no,Yes,no
+G-R121,Shane,Kail,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-V148,Shaun,Benitez,Lubbock,Lubbock HQ + Milwaukee,Branch Ops,New Accounts,no,yes,No,no
+G-V071,Shea,Ferland,Permian Basin,Midland HQ,HR,VP,yes,yes,No,no
+G-R122,Shelia,Vines,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R123,Shelly,Rawson,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V178,Sierra,Studer,Lubbock,Lubbock HQ + Milwaukee,Lending Assistants,Non-officer,no,yes,No,no
+G-R124,Sofia,Torres,Permian Basin,,,Bank officer,yes,yes,No,no
+G-R125,Stephanie,Escarcega,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V004,Stephanie,Forest,Permian Basin,Midland HQ,Bank Ops,Non-officer,no,yes,Yes,no
+G-R126,Stephanie,Mendenhall,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R127,Sterling,Swack,Lubbock,Lubbock HQ + Milwaukee,Lending,SVP,yes,yes,No,no
+G-V290,Sterling,Swack,Permian Basin,Odessa HQ,Lending,SVP,yes,no,No,no
+G-R128,Stuart,Beall,Permian Basin,Midland HQ,Lending,Non-officer,no,yes,No,no
+G-V291,Stuart,Beall,Permian Basin,Midland HQ,Lending,EVP or SVP,yes,no,No,no
+G-R129,Susan,Jurado,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-R130,Tainan,Bagetti,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R131,Tami,Mackey,Permian Basin,Cuthbert,,New Accounts,no,yes,No,no
+G-V302,Tami,Makey,Permian Basin,Cuthbert,,New Accounts,no,no,No,no
+G-V168,Tanya,Bess,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V292,Tanya,Dionne Bess,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,no,No,no
+G-R132,Teresa,Gabaldon,Permian Basin,Cuthbert,,Teller,no,yes,No,no
+G-V231,Test,User,Permian Basin,,,Non-officer,no,yes,No,no
+G-V090,Texie,Murillo,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-V099,Thalia,Olano,Permian Basin,Florida,,Non-officer,no,yes,No,no
+G-V143,Tiffany,Bustos,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-V092,Toby,Payne,Permian Basin,Midland HQ,,SVP,yes,yes,No,no
+G-R133,Tommy,Johnson,Permian Basin,,,EVP or SVP,yes,yes,No,yes
+G-V240,Tony,Ramirez,Permian Basin,Midland HQ,Credit Analyst,Non-officer,no,yes,No,no
+G-R134,Tracy,Kuykendall,Permian Basin,Midland HQ,Lending,Non-officer,no,yes,No,no
+G-V293,Tracy,Kuykendall,Permian Basin,Midland HQ,Lending,Non-officer,no,no,No,no
+G-R135,Travis,Hillman,Permian Basin,,,SVP,yes,yes,No,yes
+G-V294,Travis,Hilman,Lubbock,Lubbock HQ + Milwaukee,Lending,SVP,yes,no,No,no
+G-V192,Trent,Low,Lubbock,Lubbock HQ + Milwaukee,,EVP or SVP,yes,yes,No,no
+G-R136,Valli,Evans,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-V295,Veronica,Arreolea,Permian Basin,Midland HQ,Solutions,Non-officer,no,no,No,no
+G-R137,Veronica,Herrera,Permian Basin,Florida,Branch Ops,New Accounts,no,yes,No,no
+G-V296,Veronica,Herrera,Permian Basin,Florida,Branch Ops,New Accounts,no,no,No,no
+G-V026,Vickie,Collins,Permian Basin,Midland HQ,Lending Assistants,Non-officer,no,yes,No,no
+G-V300,Vickie,Lockwood,Permian Basin,Midland HQ,Mortgage,Non-officer,no,no,No,no
+G-V010,Victoria,De Leon,Permian Basin,Midland HQ,IT,Non-officer,no,yes,No,no
+G-V297,Victoria,Eileen Kuzmich,Permian Basin,Midland HQ,Lending,Non-officer,no,no,No,no
+G-R138,Victoria,Kuzmich,Permian Basin,Midland HQ,,VP,yes,yes,No,no
+G-R139,Victoria,Ochoa,Permian Basin,,,Non-officer,no,yes,No,yes
+G-R140,Viviana,Salgado,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
+G-R141,Weston,Leonard,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V298,Xaharait,Lujan,Permian Basin,Midland HQ,Accounting,Non-officer,no,no,Yes,no
+G-V019,Xarhait,Lujan,Permian Basin,Midland HQ,,Non-officer,no,yes,Yes,no
+G-R142,Xavier,Ramirez,Permian Basin,,,Non-officer,no,yes,No,yes
+G-V163,Yaritza,Styles,Permian Basin,Midland HQ,Solutions,Non-officer,no,yes,No,no
+G-V063,Yvette,Maldonado,Permian Basin,,HR,EVP or SVP,yes,yes,Yes,no
+G-V102,Yvonne,Higareda,Permian Basin,Midland HQ,,New Accounts,no,yes,No,no
+G-V030,Zoey,Greenwood,Permian Basin,Midland HQ,,Non-officer,no,yes,No,no
