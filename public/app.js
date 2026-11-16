@@ -126,7 +126,6 @@
     wrap.innerHTML = `<form class="panel" id="lf" autocomplete="on">
       <img src="/img/logo-navy.png" alt="Community National Bank">
       <h1>Community Connection</h1>
-      <p class="muted" style="margin:0">Sign in with the username and password your admin gave you.</p>
       <div class="field"><label for="lu">Username</label><input class="input" id="lu" name="username" autocomplete="username" autocapitalize="none" required></div>
       <div class="field"><label for="lp">Password</label><input class="input" id="lp" name="password" type="password" autocomplete="current-password" required></div>
       <p class="err" id="le" hidden></p>
