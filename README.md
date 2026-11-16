@@ -16,7 +16,7 @@ The employee volunteer and engagement app for Community National Bank. This is *
 | Reports | | Participation, hours and impact by market, branch, department or officer; hours and CRA exports |
 | Settings | | Impact rate ($30 per community hour by default), audit log |
 
-Roles: **Administrator** (everything), **Marketing** (CNB and off-the-clock events, rosters), **Compliance** (reports only), **Culture Committee** (rosters and kiosk), **Market admin** (opportunities, people, approvals and hours reports for the market on their own profile). The server checks permissions on every request.
+Roles: **Administrator** (everything), **Marketing** (CNB and off-the-clock events, rosters), **Compliance** (reports only), **Culture Committee** (rosters and kiosk), **Market admin** (opportunities, people, approvals and hours reports for the market on their own profile), **IT help desk** (find people and reset sign-ins only; can't reset anyone with an admin role). The server checks permissions on every request.
 
 Later phases: notifications, points and store, raffles, ticketed events, training, games, gallery, committee hub, swag, donations.
 

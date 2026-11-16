@@ -60,6 +60,7 @@ test.before(async () => {
   ids.ccm = await emp('cc.ccm', ['ccm'], 'Permian Basin');
   ids.mkta = await emp('lu.mkta', ['mkta'], 'Lubbock');
   ids.newbie = await emp('new.hire', [], 'Permian Basin', { mustChange: true });
+  ids.it = await emp('ivy.it', ['it'], 'Permian Basin');
   server = createApp().listen(0);
   await new Promise(r => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -220,6 +221,34 @@ test('kiosk: committee opens it, people check in and out, hours are logged', asy
   // Employees cannot open kiosks
   const e = await new Client().login('eli.emp');
   assert.equal((await e.post('/api/admin/kiosk', { opp_id: oppId })).status, 403);
+});
+
+test('IT help desk can only find people and reset non-admin sign-ins', async () => {
+  const it = await new Client().login('ivy.it');
+  const list = await it.get('/api/admin/people?q=leo');
+  assert.equal(list.status, 200);
+  assert.equal(list.data.rows[0].ytd_min, null, 'no hours for the help desk');
+  const lbk = await it.get(`/api/admin/people/${ids.lbkEmp}`);
+  assert.equal(lbk.data.limited, true, 'all markets, limited view');
+  assert.deepEqual(lbk.data.hours, []);
+  const r = await it.post(`/api/admin/people/${ids.lbkEmp}/account`);
+  assert.equal(r.status, 200);
+  assert.equal((await it.post(`/api/admin/people/${ids.admin}/account`)).status, 403, 'cannot reset an Administrator');
+  assert.equal((await it.post(`/api/admin/people/${ids.mkta}/account`)).status, 403, 'cannot reset any role holder');
+  assert.equal((await it.req('PATCH', `/api/admin/people/${ids.lbkEmp}`, { title: 'X' })).status, 403, 'cannot edit profiles');
+  assert.equal((await it.get('/api/admin/approvals')).status, 403);
+  assert.equal((await it.get('/api/admin/reports/participation')).status, 403);
+  await q('UPDATE employees SET pass_hash=$2, must_change=false WHERE id=$1', [ids.lbkEmp, hashPassword(PW)]);
+});
+
+test('sign-in page shows the help desk email once an admin sets it', async () => {
+  const anon = new Client();
+  await q(`DELETE FROM settings WHERE key='helpdesk_email'`);
+  assert.equal((await anon.get('/api/public-config')).data.helpdeskEmail, null);
+  const a = await new Client().login('ana.admin');
+  assert.equal((await a.req('PUT', '/api/admin/settings', { impact_rate: 30, helpdesk_email: 'not-an-email' })).status, 400);
+  assert.equal((await a.req('PUT', '/api/admin/settings', { impact_rate: 30, helpdesk_email: 'helpdesk@example.com' })).status, 200);
+  assert.equal((await anon.get('/api/public-config')).data.helpdeskEmail, 'helpdesk@example.com');
 });
 
 test('audit log records admin actions', async () => {

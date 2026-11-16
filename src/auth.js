@@ -125,7 +125,7 @@ function requireUser(req, res, next) {
   if (req.user.must_change && !req.allowMustChange) return res.status(403).json({ error: 'Please set a new password first.', mustChange: true });
   next();
 }
-// Roles: admin (everything), mkt (Marketing), comp (Compliance), ccm (Culture Committee), mkta (Market admin)
+// Roles: admin (everything), mkt (Marketing), comp (Compliance), ccm (Culture Committee), mkta (Market admin), it (IT help desk)
 const can = (user, perm) => {
   const r = user?.roles || [];
   if (r.includes('admin')) return true;
@@ -135,6 +135,7 @@ const can = (user, perm) => {
     'rosters.view': ['mkt', 'ccm', 'mkta'],
     'kiosk.run': ['ccm'],
     'people.view': ['mkta'],
+    'accounts.reset': ['mkta', 'it'],   // IT help desk: find people and reset sign-ins, nothing else
     'people.edit': ['mkta'],
     'hours.approve': ['mkta'],
     'reports.hours': ['comp', 'mkta'],

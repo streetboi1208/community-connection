@@ -44,3 +44,4 @@ body{margin:0}
 .ktile svg{width:28px;height:28px;color:var(--red)}
 .facts{margin:0}
 .top .avbtn{margin-left:auto}.top .nav + .modebtn{margin-left:0}
+@container (max-width:640px){ main{padding-bottom:96px} }

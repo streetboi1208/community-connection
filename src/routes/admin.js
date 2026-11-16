@@ -185,7 +185,7 @@ r.post('/hours', A.requirePerm('hours.approve'), async (req, res) => {
 });
 
 // ================= People =================
-r.get('/people', A.requirePerm('people.view'), async (req, res) => {
+r.get('/people', A.requirePerm('people.view', 'accounts.reset'), async (req, res) => {
   const m = A.marketScope(req.user);
   const s = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
   const rows = await many(
@@ -196,11 +196,18 @@ r.get('/people', A.requirePerm('people.view'), async (req, res) => {
       WHERE ($1::int IS NULL OR e.market_id=$1)
         AND ($2 = '' OR lower(e.first_name||' '||e.last_name) LIKE '%'||$2||'%' OR lower(COALESCE(e.username,'')) LIKE '%'||$2||'%' OR e.emp_no = $2)
       ORDER BY e.active DESC, e.last_name, e.first_name LIMIT 500`, [m, s, today()]);
+  if (!A.can(req.user, 'people.view')) rows.forEach(r => { r.ytd_min = null; }); // help desk doesn't need hours
   res.json({ rows });
 });
 
-r.get('/people/:id', A.requirePerm('people.view'), async (req, res) => {
+r.get('/people/:id', A.requirePerm('people.view', 'accounts.reset'), async (req, res) => {
   const e0 = await employeeInScope(req.user, int(req.params.id, 'id', { min: 1 }));
+  // IT help desk sees only what it needs to reset a sign-in.
+  if (!A.can(req.user, 'people.view')) {
+    const p = await one(`SELECT e.id, e.first_name, e.last_name, e.emp_no, e.username, e.roles, e.active, e.must_change, e.locked_until, (e.pass_hash IS NOT NULL) AS has_account,
+                                mk.name AS market, b.name AS branch FROM employees e JOIN markets mk ON mk.id=e.market_id LEFT JOIN branches b ON b.id=e.branch_id WHERE e.id=$1`, [e0.id]);
+    return res.json({ person: p, hours: [], limited: true });
+  }
   const e = await one(
     `SELECT e.id, e.emp_no, e.first_name, e.last_name, e.username, e.roles, e.active, e.officer, e.title, e.hire_date,
             e.market_id, e.branch_id, e.department_id, e.shirt_size, e.must_change, e.locked_until,
@@ -231,7 +238,7 @@ r.patch('/people/:id', A.requirePerm('people.edit'), async (req, res) => {
   }
   if (b.roles !== undefined) {
     if (!A.can(req.user, 'roles.assign')) throw new Bad('Only Administrators can assign roles.', 403);
-    const roles = (Array.isArray(b.roles) ? b.roles : []).map(x => oneOf(x, 'Role', ['admin', 'mkt', 'comp', 'ccm', 'mkta']));
+    const roles = (Array.isArray(b.roles) ? b.roles : []).map(x => oneOf(x, 'Role', ['admin', 'mkt', 'comp', 'ccm', 'mkta', 'it']));
     if (e.id === req.user.id && !roles.includes('admin')) throw new Bad("You can't remove your own Administrator role.");
     set.roles = [...new Set(roles)];
   }
@@ -249,8 +256,14 @@ r.patch('/people/:id', A.requirePerm('people.edit'), async (req, res) => {
 });
 
 // Create a sign-in for an employee, or reset it. Returns a temporary password to read to them once.
-r.post('/people/:id/account', A.requirePerm('people.edit'), async (req, res) => {
+r.post('/people/:id/account', A.requirePerm('people.edit', 'accounts.reset'), async (req, res) => {
   const e = await employeeInScope(req.user, int(req.params.id, 'id', { min: 1 }));
+  // Only Administrators reset sign-ins for people who hold an admin role, so a help desk
+  // reset can't be used to take over a more powerful account.
+  if (e.roles.length && !req.user.roles.includes('admin')) throw new Bad('Only an Administrator can reset the sign-in for someone with an admin role.', 403);
+  if (e.id === req.user.id) throw new Bad('Use Change password on your own profile.', 400);
+  const active = await one('SELECT active FROM employees WHERE id=$1', [e.id]);
+  if (!active.active) throw new Bad("That person is marked inactive. An admin must reactivate them first.", 409);
   let username = e.username;
   if (!username) {
     const base = `${e.first_name}.${e.last_name}`.toLowerCase().normalize('NFD').replace(/[^a-z.]/g, '').slice(0, 40) || `user${e.id}`;
@@ -383,13 +396,16 @@ r.get('/reports/hours', A.requirePerm('reports.hours'), async (req, res) => {
 
 // ================= Settings =================
 r.get('/settings', A.requirePerm('settings.edit'), async (req, res) => {
-  res.json({ impact_rate: Number(await setting('impact_rate', 30)) });
+  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', '') });
 });
 r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {
   const rate = Number(req.body?.impact_rate);
   if (!(rate > 0 && rate < 500)) throw new Bad('Impact rate must be a dollar amount.');
+  const email = str(req.body?.helpdesk_email, 'Help desk email', { max: 200, required: false }) || '';
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Bad('Help desk email is not valid.');
   await q(`INSERT INTO settings (key, value) VALUES ('impact_rate', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(rate)]);
-  await audit(req.user.id, 'settings.impact_rate', 'settings', { rate });
+  await q(`INSERT INTO settings (key, value) VALUES ('helpdesk_email', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(email)]);
+  await audit(req.user.id, 'settings.updated', 'settings', { rate, helpdesk_email: email });
   res.json({ ok: true });
 });
 

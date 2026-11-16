@@ -17,7 +17,7 @@
   const fmtDate = (iso, o = { weekday: 'short', month: 'short', day: 'numeric' }) => iso ? d8(iso).toLocaleDateString('en-US', o) : '';
   const fmtT = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   const hrs = m => n1(m / 60);
-  const ROLE = { admin: 'Administrator', mkt: 'Marketing', comp: 'Compliance', ccm: 'Culture Committee', mkta: 'Market admin' };
+  const ROLE = { admin: 'Administrator', mkt: 'Marketing', comp: 'Compliance', ccm: 'Culture Committee', mkta: 'Market admin', it: 'IT help desk' };
   const OT = { community: 'Volunteer (nonprofit)', bank: 'CNB event', social: 'Off the clock' };
   const STATUS = { pending: '<span class="pill warn">Pending</span>', approved: '<span class="pill ok">Approved</span>', rejected: '<span class="pill">Not approved</span>' };
 
@@ -57,11 +57,12 @@
       const items = [['#/admin', 'Admin home', I.grid]];
       if (can('opps.create') || can('rosters.view') || can('kiosk.run')) items.push(['#/admin/opps', 'Opportunities', I.list]);
       if (can('hours.approve')) items.push(['#/admin/approvals', 'Approvals', I.check]);
-      if (can('people.view')) items.push(['#/admin/people', 'People', I.user]);
+      if (can('people.view') || can('accounts.reset')) items.push(['#/admin/people', can('people.view') ? 'People' : 'Password resets', I.user]);
       if (can('reports.hours')) items.push(['#/admin/reports', 'Reports', I.chart]);
+      items.push(['/preview', 'Full preview', I.grid]);
       return items;
     }
-    return [['#/', 'Home', I.home], ['#/volunteer', 'Volunteer', I.heart], ['#/activity', 'My activity', I.cal], ['#/profile', 'Profile', I.user]];
+    return [['#/', 'Home', I.home], ['#/volunteer', 'Volunteer', I.heart], ['#/activity', 'My activity', I.cal], ['#/profile', 'Profile', I.user], ['/preview', 'Full preview', I.grid]];
   }
   function paintChrome(hash) {
     const signedIn = !!S.me && !S.me.must_change;
@@ -125,15 +126,20 @@
     wrap.innerHTML = `<form class="panel" id="lf" autocomplete="on">
       <img src="/img/logo-navy.png" alt="Community National Bank">
       <h1>Community Connection</h1>
-      <p class="muted" style="margin:0">Sign in with the username and password your admin gave you.</p>
       <div class="field"><label for="lu">Username</label><input class="input" id="lu" name="username" autocomplete="username" autocapitalize="none" required></div>
       <div class="field"><label for="lp">Password</label><input class="input" id="lp" name="password" type="password" autocomplete="current-password" required></div>
       <p class="err" id="le" hidden></p>
       <button class="btn red" type="submit">Sign in</button>
-      <small class="muted">Forgot your password? Ask your Culture Committee lead or an admin to reset it.</small>
+      <small class="muted" id="forgot">Forgot your password? Ask your Culture Committee lead or an admin to reset it.</small>
     </form>`;
     main.appendChild(wrap);
     main.style.padding = '0';
+    get('/public-config').then(c => {
+      if (!c.helpdeskEmail) return;
+      const subj = encodeURIComponent('Community Connection password reset');
+      const body = encodeURIComponent('Hi IT,\n\nPlease reset my Community Connection password.\n\nName:\nBranch:\nUsername (if you know it):\nBest phone number to reach me:\n');
+      $('#forgot').innerHTML = `Forgot your password? <a href="mailto:${esc(c.helpdeskEmail)}?subject=${subj}&body=${body}">Email the IT help desk</a> and they'll reset it.`;
+    }).catch(() => {});
     $('#lf').addEventListener('submit', async e => {
       e.preventDefault();
       try {
@@ -316,6 +322,7 @@
       ['kiosk.run', '#/admin/opps', I.check, 'Open the kiosk', 'Check-in on an iPad at an event'],
       ['hours.approve', '#/admin/approvals', I.check, 'Approve hours', 'Self-logged volunteering waiting for review'],
       ['people.view', '#/admin/people', I.user, 'People', 'Profiles, sign-ins and password resets'],
+      ['accounts.reset', '#/admin/people', I.user, 'Reset a password', 'Find an employee and give them a temporary password'],
       ['roster.import', '#/admin/import', I.people, 'Import employee roster', 'All employees, for true participation %'],
       ['reports.hours', '#/admin/reports', I.chart, 'Reports', 'Participation, hours, impact and CRA'],
       ['settings.edit', '#/admin/settings', I.star, 'Settings and audit log', 'Impact rate, who did what']
@@ -433,16 +440,17 @@
   async function vPeople() {
     const qv = sessionStorage.getItem('cc_pq') || '';
     const { rows } = await get('/admin/people?q=' + encodeURIComponent(qv));
-    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>People</h1>${can('roster.import') ? '<a class="btn ghost" href="#/admin/import">Import roster</a>' : ''}</div>
+    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>${can('people.view') ? 'People' : 'Password resets'}</h1>${can('roster.import') ? '<a class="btn ghost" href="#/admin/import">Import roster</a>' : ''}</div>
       <form id="pq" class="toolbar"><input class="input search" name="q" value="${esc(qv)}" placeholder="Search name, username or employee #"><button class="btn ghost">Search</button></form>
       <div class="tablewrap"><table class="stbl tight"><thead><tr><th>Name</th><th>Market / branch</th><th>Sign-in</th><th>Roles</th><th class="num">Hours this year</th></tr></thead><tbody>
-      ${rows.map(p => `<tr class="click" data-id="${p.id}"><td><a href="#/admin/person/${p.id}">${esc(p.first_name + ' ' + p.last_name)}</a>${p.active ? '' : ' <span class="pill">Inactive</span>'}<br><small class="muted">${esc(p.emp_no)}</small></td><td>${esc(p.market)}<br><small class="muted">${esc(p.branch || '')}</small></td><td>${p.username ? esc(p.username) : '<span class="muted">None yet</span>'}</td><td>${p.roles.map(r => ROLE[r]).join(', ')}</td><td class="num">${hrs(p.ytd_min)}</td></tr>`).join('')}
+      ${rows.map(p => `<tr class="click" data-id="${p.id}"><td><a href="#/admin/person/${p.id}">${esc(p.first_name + ' ' + p.last_name)}</a>${p.active ? '' : ' <span class="pill">Inactive</span>'}<br><small class="muted">${esc(p.emp_no)}</small></td><td>${esc(p.market)}<br><small class="muted">${esc(p.branch || '')}</small></td><td>${p.username ? esc(p.username) : '<span class="muted">None yet</span>'}</td><td>${p.roles.map(r => ROLE[r]).join(', ')}</td><td class="num">${p.ytd_min == null ? '—' : hrs(p.ytd_min)}</td></tr>`).join('')}
       </tbody></table></div><small class="muted">${rows.length} people${rows.length === 500 ? ' (first 500; search to narrow)' : ''}</small>`;
     $('#pq').addEventListener('submit', e => { e.preventDefault(); sessionStorage.setItem('cc_pq', e.target.q.value); vPeople(); });
   }
 
   async function vPerson(id) {
-    const { person: p, hours } = await get('/admin/people/' + id);
+    const { person: p, hours, limited } = await get('/admin/people/' + id);
+    if (limited) return vPersonReset(id, p);
     const isAdmin = roles().includes('admin');
     const brs = S.meta.branches.filter(b => b.market_id === p.market_id);
     main.innerHTML = `<a class="back" href="#/admin/people">${I.left}People</a><h1>${esc(p.first_name + ' ' + p.last_name)}</h1>
@@ -494,6 +502,27 @@
     if (ah) ah.addEventListener('submit', async e => {
       e.preventDefault();
       try { await api('POST', '/admin/hours', { employee_id: Number(id), ...formData(e.target) }); toast('Hours added.'); vPerson(id); } catch (err) { showErr($('#ahe'), err); }
+    });
+  }
+
+  // IT help desk view: identity check and reset only.
+  function vPersonReset(id, p) {
+    const roleHolder = p.roles.length > 0;
+    main.innerHTML = `<a class="back" href="#/admin/people">${I.left}Password resets</a><h1>${esc(p.first_name + ' ' + p.last_name)}</h1>
+      <div class="panel" style="max-width:620px"><dl class="facts"><dt>${I.user}Employee #</dt><dd>${esc(p.emp_no)}</dd><dt>${I.org}Market</dt><dd>${esc(p.market)}</dd><dt>${I.pin}Branch</dt><dd>${esc(p.branch || '—')}</dd><dt>${I.check}Sign-in</dt><dd>${p.has_account ? esc(p.username) : 'None yet'}${p.locked_until && new Date(p.locked_until) > new Date() ? ' · <span class="pill">Locked</span>' : ''}</dd></dl>
+        <div class="note"><b>Before you reset:</b> confirm it's really them. Call them back at a number on file with HR, or check with their manager. Never reset based on an email or text alone.</div>
+        ${!p.active ? '<p class="err">Marked inactive. An admin must reactivate them first.</p>' : roleHolder ? '<p class="err">This person has an admin role. Only an Administrator can reset their sign-in.</p>' : `<label class="toggle"><input type="checkbox" id="vf"><span class="sw"></span><small>I confirmed this person's identity</small></label><button class="btn red" id="acct" disabled>${p.has_account ? 'Reset password' : 'Create sign-in'}</button>`}
+        <div id="acctOut"></div></div>`;
+    const vf = $('#vf'), ab = $('#acct');
+    if (!vf) return;
+    vf.addEventListener('change', () => { ab.disabled = !vf.checked; });
+    ab.addEventListener('click', async () => {
+      try {
+        const r = await api('POST', `/admin/people/${id}/account`);
+        ab.disabled = true;
+        $('#acctOut').innerHTML = `<p style="margin:8px 0 4px">Give these to ${esc(p.first_name)} by phone or in person, not by email. They'll set their own password at sign-in.</p>
+          <div>Username: <span class="pw">${esc(r.username)}</span></div><div style="margin-top:6px">Temporary password: <span class="pw">${esc(r.tempPassword)}</span></div><small class="muted">This password won't be shown again.</small>`;
+      } catch (err) { toast(err.message); }
     });
   }
 
@@ -549,12 +578,12 @@
 
   async function vSettings() {
     const [s, a] = await Promise.all([get('/admin/settings'), get('/admin/audit')]);
-    main.innerHTML = `<h1>Settings</h1><form class="panel" id="stf" style="max-width:520px"><div class="field"><label for="ir">Impact rate ($ per community volunteer hour)</label><input class="input" id="ir" name="impact_rate" type="number" step="0.01" min="1" value="${s.impact_rate}"><small>Internal standard. Cite a source if the number is shared outside the bank.</small></div><button class="btn red">Save</button></form>
+    main.innerHTML = `<h1>Settings</h1><form class="panel" id="stf" style="max-width:520px"><div class="field"><label for="ir">Impact rate ($ per community volunteer hour)</label><input class="input" id="ir" name="impact_rate" type="number" step="0.01" min="1" value="${s.impact_rate}"><small>Internal standard. Cite a source if the number is shared outside the bank.</small></div><div class="field"><label for="hde">IT help desk email</label><input class="input" id="hde" name="helpdesk_email" type="email" value="${esc(s.helpdesk_email || '')}"><small>Shown on the sign-in page as "Email the IT help desk" for forgotten passwords.</small></div><button class="btn red">Save</button></form>
       <div class="panel"><h2>Audit log (latest 300)</h2><div class="tablewrap"><table class="stbl tight"><thead><tr><th>When</th><th>Who</th><th>What</th><th>Target</th></tr></thead><tbody>
       ${a.rows.map(x => `<tr><td>${new Date(x.at).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(x.actor || 'Kiosk / system')}</td><td>${esc(x.action)}</td><td>${esc(x.target || '')}</td></tr>`).join('')}</tbody></table></div></div>`;
     $('#stf').addEventListener('submit', async e => {
       e.preventDefault();
-      try { await api('PUT', '/admin/settings', { impact_rate: Number(e.target.impact_rate.value) }); S.meta = await get('/meta'); toast('Saved.'); } catch (err) { toast(err.message); }
+      try { await api('PUT', '/admin/settings', { impact_rate: Number(e.target.impact_rate.value), helpdesk_email: e.target.helpdesk_email.value }); S.meta = await get('/meta'); toast('Saved.'); } catch (err) { toast(err.message); }
     });
   }
 

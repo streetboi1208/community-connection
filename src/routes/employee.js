@@ -9,6 +9,10 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
 
 // ---------- session ----------
 r.post('/login', A.login);
+// Shown on the sign-in page before anyone signs in.
+r.get('/public-config', async (req, res) => {
+  res.json({ helpdeskEmail: await setting('helpdesk_email', '') || null });
+});
 r.post('/logout', async (req, res) => { await A.destroySession(req, res); res.json({ ok: true }); });
 
 r.get('/me', async (req, res) => {
@@ -20,7 +24,7 @@ r.get('/me', async (req, res) => {
        LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id
       WHERE e.id=$1`, [req.user.id]);
   const perms = ['opps.create', 'opps.createVolunteer', 'rosters.view', 'kiosk.run', 'people.view', 'people.edit',
-    'hours.approve', 'reports.hours', 'reports.cra', 'roster.import', 'roles.assign', 'settings.edit'].filter(x => A.can(req.user, x));
+    'hours.approve', 'reports.hours', 'reports.cra', 'roster.import', 'roles.assign', 'settings.edit', 'accounts.reset'].filter(x => A.can(req.user, x));
   res.json({ user: p, perms });
 });
 
