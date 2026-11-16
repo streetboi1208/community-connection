@@ -1,0 +1,45 @@
+/* Pilot overrides: the prototype stylesheet drew the app inside a demo frame; the real app fills the screen. */
+.stage.web{padding:0}
+.stage.web .app{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;min-height:100vh;min-height:100dvh}
+.app{height:auto;overflow:visible}
+main{max-width:1180px;width:100%;margin:0 auto}
+.top{padding-top:max(14px,env(safe-area-inset-top,0px))}
+.top .avbtn{text-decoration:none;display:grid;place-items:center}
+.nav a{background:transparent;border:0;color:rgba(255,255,255,.78);font-weight:600;font-size:.88rem;padding:8px 14px;border-radius:8px;display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav a[aria-current="true"]{background:rgba(255,255,255,.14);color:#fff}
+.nav a svg{width:18px;height:18px}
+.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 0}
+.tabbar a[aria-current="true"]{color:var(--red)}
+.tabbar a svg{width:22px;height:22px}
+@container (max-width:640px){ .tabbar[hidden]{display:none!important} }
+.modebtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:999px;padding:6px 12px;font-weight:600;font-size:.8rem;cursor:pointer;white-space:nowrap}
+main:has(.login){max-width:none;padding:0}
+.login{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;background:url(img/swoosh-soft2.png) no-repeat right -40px bottom -30px/min(620px,90%) auto,var(--band)}
+.login .panel{width:100%;max-width:400px}
+.login img{height:44px;width:auto;align-self:flex-start}
+.err{color:var(--red);font-weight:600;font-size:.9rem;margin:0}
+.ok{color:var(--ok);font-weight:600}
+.hstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@container (max-width:560px){ .hstats{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.hstats a{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;padding:10px;display:flex;flex-direction:column;text-decoration:none}
+.hstats b{font-family:var(--display);font-size:1.6rem;line-height:1}
+.hstats span{font-size:.75rem;opacity:.85;line-height:1.25}
+a.card{color:inherit;text-decoration:none}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pw{font-family:ui-monospace,Menlo,monospace;font-size:1.2rem;background:var(--surface-2);padding:10px 14px;border-radius:8px;user-select:all}
+.tight td,.tight th{padding:8px 10px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.ktile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit}
+.ktile b{font-family:var(--display);font-size:1.15rem;font-weight:500}
+.app.adminmode .top{background:url(img/swoosh-admin2.png) no-repeat right 18% bottom -8px/auto 150%,#cc0000}
+.app.adminmode .nav a[aria-current="true"]{background:rgba(0,0,0,.22)}
+.pilotnote{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.8rem;font-weight:600}
+textarea.input{min-height:90px}
+.kiosk-app{min-height:100vh;min-height:100dvh;background:var(--bg)}
+.kbig{font-size:1.15rem;padding:16px 18px}
+.kres{display:flex;flex-direction:column;gap:8px}
+.kres button{justify-content:space-between}
+body{margin:0}
+.top[hidden],.tabbar[hidden]{display:none!important}
+.ktile svg{width:28px;height:28px;color:var(--red)}
+.facts{margin:0}

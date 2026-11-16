@@ -1,0 +1,21 @@
+{
+  "name": "community-connection",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CNB Community Connection: employee volunteer and engagement app (pilot, phase 1)",
+  "main": "src/server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:setup": "node db/migrate.js",
+    "db:seed": "node db/seed.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "express": "5.1.0",
+    "express-rate-limit": "7.5.0",
+    "helmet": "8.1.0",
+    "pg": "8.16.0"
+  }
+}
