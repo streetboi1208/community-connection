@@ -4,6 +4,7 @@ const { q, one, many, tx, audit, setting } = require('../db');
 const A = require('../auth');
 const { Bad, str, int, bool, isoDate, hhmm, oneOf, today, parseCsv, toCsv } = require('../util');
 
+const { promoteWaitlist } = require('../waitlist');
 const r = express.Router();
 
 // Every admin route needs a signed-in user with at least one role.
@@ -81,8 +82,11 @@ async function saveOpp(req, id) {
     };
   });
   if (!shifts.length) throw new Bad('Add at least one shift.');
-  const cols = [otype, title, nonprofitId, marketId, location, address, description, bool(b.collect_shirts), bool(b.cra),
-    str(b.cra_note, 'CRA note', { max: 300, required: false }), status];
+  // CRA community development service: serves low- to moderate-income people AND uses financial knowledge.
+  const lmi = otype === 'social' ? false : bool(b.cra_lmi);
+  const fin = otype === 'social' ? false : bool(b.cra_finance);
+  const cols = [otype, title, nonprofitId, marketId, location, address, description, bool(b.collect_shirts), lmi && fin,
+    str(b.cra_note, 'CRA note', { max: 300, required: false }), status, lmi, fin];
   return tx(async c => {
     let oppId = id;
     if (id) {
@@ -90,10 +94,10 @@ async function saveOpp(req, id) {
       if (!cur) throw new Bad('Not found.', 404);
       assertMarket(req.user, cur.market_id);
       await c.query(`UPDATE opportunities SET otype=$2,title=$3,nonprofit_id=$4,market_id=$5,location=$6,address=$7,description=$8,
-                     collect_shirts=$9,cra=$10,cra_note=$11,status=$12 WHERE id=$1`, [id, ...cols]);
+                     collect_shirts=$9,cra=$10,cra_note=$11,status=$12,cra_lmi=$13,cra_finance=$14 WHERE id=$1`, [id, ...cols]);
     } else {
-      oppId = (await c.query(`INSERT INTO opportunities (otype,title,nonprofit_id,market_id,location,address,description,collect_shirts,cra,cra_note,status,created_by)
-                              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`, [...cols, req.user.id])).rows[0].id;
+      oppId = (await c.query(`INSERT INTO opportunities (otype,title,nonprofit_id,market_id,location,address,description,collect_shirts,cra,cra_note,status,cra_lmi,cra_finance,created_by)
+                              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`, [...cols, req.user.id])).rows[0].id;
     }
     const keep = shifts.filter(s => s.id).map(s => s.id);
     // Removing a shift that has sign-ups is blocked so nobody is silently dropped.
@@ -108,6 +112,7 @@ async function saveOpp(req, id) {
         const u = await c.query('UPDATE shifts SET date=$3,start_time=$4,end_time=$5,capacity=$6,label=$7 WHERE id=$1 AND opp_id=$2',
           [s.id, oppId, s.date, s.start, s.end, s.capacity, s.label]);
         if (!u.rowCount) throw new Bad('A shift was not found.');
+        await promoteWaitlist(c, s.id); // more spots: move people up from the waitlist
       } else {
         await c.query('INSERT INTO shifts (opp_id,date,start_time,end_time,capacity,label) VALUES ($1,$2,$3,$4,$5,$6)',
           [oppId, s.date, s.start, s.end, s.capacity, s.label]);
@@ -137,14 +142,17 @@ r.get('/opps/:id/roster', A.requirePerm('rosters.view', 'kiosk.run'), async (req
     return res.send(toCsv(['Date', 'Start', 'End', 'Shift', 'First', 'Last', 'Branch', 'Shirt'],
       rows.filter(x => x.employee_id).map(x => [x.date, x.start, x.end, x.label, x.first_name, x.last_name, x.branch, x.shirt_size])));
   }
-  res.json({ opp: o, rows });
+  const waiting = await many(
+    `SELECT w.shift_id, e.first_name, e.last_name, w.created_at FROM waitlist w JOIN shifts s ON s.id=w.shift_id JOIN employees e ON e.id=w.employee_id
+      WHERE s.opp_id=$1 ORDER BY w.shift_id, w.created_at, w.id`, [id]);
+  res.json({ opp: o, rows, waiting });
 });
 
 // ================= Hours and approvals =================
 r.get('/approvals', A.requirePerm('hours.approve'), async (req, res) => {
   const m = A.marketScope(req.user);
   const rows = await many(
-    `SELECT h.id, h.date, h.minutes, h.otype, h.org_name, h.details, h.created_at, e.id AS employee_id, e.first_name, e.last_name,
+    `SELECT h.id, h.date, h.minutes, h.otype, h.org_name, h.details, h.created_at, h.cra_lmi, h.cra_finance, e.id AS employee_id, e.first_name, e.last_name,
             mk.name AS market, b.name AS branch
        FROM hours h JOIN employees e ON e.id=h.employee_id JOIN markets mk ON mk.id=e.market_id LEFT JOIN branches b ON b.id=e.branch_id
       WHERE h.status='pending' AND ($1::int IS NULL OR e.market_id=$1) ORDER BY h.created_at`, [m]);
@@ -210,7 +218,7 @@ r.get('/people/:id', A.requirePerm('people.view', 'accounts.reset'), async (req,
   }
   const e = await one(
     `SELECT e.id, e.emp_no, e.first_name, e.last_name, e.username, e.roles, e.active, e.officer, e.title, e.hire_date,
-            e.market_id, e.branch_id, e.department_id, e.shirt_size, e.must_change, e.locked_until,
+            e.market_id, e.branch_id, e.department_id, e.manager_name, e.info_confirmed_at, e.shirt_size, e.must_change, e.locked_until,
             (e.pass_hash IS NOT NULL) AS has_account,
             CASE WHEN $2 THEN e.phone END AS phone, CASE WHEN $2 THEN e.personal_email END AS personal_email
        FROM employees e WHERE e.id=$1`, [e0.id, req.user.roles.includes('admin')]);
@@ -228,6 +236,7 @@ r.patch('/people/:id', A.requirePerm('people.edit'), async (req, res) => {
   if (b.first_name !== undefined) set.first_name = str(b.first_name, 'First name', { max: 60 });
   if (b.last_name !== undefined) set.last_name = str(b.last_name, 'Last name', { max: 60 });
   if (b.title !== undefined) set.title = str(b.title, 'Title', { max: 80, required: false });
+  if (b.manager_name !== undefined) set.manager_name = str(b.manager_name, 'Manager', { max: 120, required: false }) || null;
   if (b.officer !== undefined) set.officer = bool(b.officer);
   if (b.active !== undefined) set.active = bool(b.active);
   if (b.branch_id !== undefined) set.branch_id = b.branch_id ? int(b.branch_id, 'Branch', { min: 1 }) : null;
@@ -279,7 +288,7 @@ r.post('/people/:id/account', A.requirePerm('people.edit', 'accounts.reset'), as
 });
 
 // ================= Roster import (all employees, for participation %) =================
-// CSV columns: emp_no, first_name, last_name, market, branch, department, title, officer, hire_date, active
+// CSV columns: emp_no, first_name, last_name, market, branch, department, title, officer, hire_date, active, manager
 r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
   const commit = req.body?.commit === true;
   const deactivateMissing = req.body?.deactivateMissing === true;
@@ -297,7 +306,7 @@ r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
     const g = n => (col(n) >= 0 ? String(r0[col(n)] || '').trim() : '');
     const line = i + 2;
     const rec = { emp_no: g('emp_no'), first_name: g('first_name'), last_name: g('last_name'), market: g('market'),
-      branch: g('branch') || null, department: g('department') || null, title: g('title') || null,
+      branch: g('branch') || null, department: g('department') || null, title: g('title') || null, manager: g('manager') || null,
       officer: bool(g('officer')), hire_date: g('hire_date') || null, active: col('active') >= 0 ? !['n', 'no', 'false', '0', 'inactive'].includes(g('active').toLowerCase()) : true };
     if (!rec.emp_no || !rec.first_name || !rec.last_name) return errors.push(`Row ${line}: employee number, first and last name are required.`);
     if (seen.has(rec.emp_no)) return errors.push(`Row ${line}: employee number ${rec.emp_no} appears twice.`);
@@ -320,12 +329,12 @@ r.post('/roster/import', A.requirePerm('roster.import'), async (req, res) => {
       'INSERT INTO departments (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name RETURNING id', [name])).rows[0].id : null;
     for (const x of recs) {
       await c.query(
-        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, hire_date, active)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, hire_date, active, manager_name)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          ON CONFLICT (emp_no) DO UPDATE SET first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, market_id=EXCLUDED.market_id,
            branch_id=EXCLUDED.branch_id, department_id=EXCLUDED.department_id, title=EXCLUDED.title, officer=EXCLUDED.officer,
-           hire_date=EXCLUDED.hire_date, active=EXCLUDED.active, updated_at=now()`,
-        [x.emp_no, x.first_name, x.last_name, x.market_id, await branchId(x.branch, x.market_id), await deptId(x.department), x.title, x.officer, x.hire_date, x.active]);
+           hire_date=EXCLUDED.hire_date, active=EXCLUDED.active, manager_name=COALESCE(EXCLUDED.manager_name, employees.manager_name), updated_at=now()`,
+        [x.emp_no, x.first_name, x.last_name, x.market_id, await branchId(x.branch, x.market_id), await deptId(x.department), x.title, x.officer, x.hire_date, x.active, x.manager]);
     }
     if (deactivateMissing) {
       await c.query('UPDATE employees SET active=false, updated_at=now() WHERE active AND NOT (emp_no = ANY($1::text[]))', [[...seen]]);
@@ -380,23 +389,107 @@ r.get('/reports/hours', A.requirePerm('reports.hours'), async (req, res) => {
   const rows = await many(
     `SELECT h.date, e.emp_no, e.first_name, e.last_name, mk.name AS market, b.name AS branch, d.name AS department,
             COALESCE(n.name, h.org_name) AS organization, COALESCE(o.title, h.details) AS activity, h.otype,
-            round(h.minutes/60.0, 2)::float AS hours, COALESCE(o.cra,false) AS cra, o.cra_note, h.source
+            round(h.minutes/60.0, 2)::float AS hours, COALESCE(o.cra, h.cra_lmi AND h.cra_finance) AS cra, o.cra_note, h.source,
+            COALESCE(o.cra_lmi, h.cra_lmi) AS cra_lmi, COALESCE(o.cra_finance, h.cra_finance) AS cra_finance
        FROM hours h JOIN employees e ON e.id=h.employee_id JOIN markets mk ON mk.id=e.market_id
        LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id
        LEFT JOIN opportunities o ON o.id=h.opp_id LEFT JOIN nonprofits n ON n.id=o.nonprofit_id
-      WHERE h.status='approved' AND h.date BETWEEN $1 AND $2 AND ($3::int IS NULL OR e.market_id=$3) AND (NOT $4 OR o.cra)
+      WHERE h.status='approved' AND h.date BETWEEN $1 AND $2 AND ($3::int IS NULL OR e.market_id=$3) AND (NOT $4 OR COALESCE(o.cra_lmi, h.cra_lmi) OR COALESCE(o.cra_finance, h.cra_finance))
       ORDER BY h.date DESC, e.last_name LIMIT 20000`, [from, to, m, craOnly]);
   if (req.query.format === 'csv') {
     res.type('text/csv').attachment(`${craOnly ? 'cra-' : ''}hours-${year}.csv`);
-    return res.send(toCsv(['Date', 'Emp #', 'First', 'Last', 'Market', 'Branch', 'Department', 'Organization', 'Activity', 'Type', 'Hours', 'CRA', 'CRA note', 'Source'],
-      rows.map(x => [x.date, x.emp_no, x.first_name, x.last_name, x.market, x.branch, x.department, x.organization, x.activity, x.otype, x.hours, x.cra ? 'Yes' : 'No', x.cra_note, x.source])));
+    return res.send(toCsv(['Date', 'Employee #', 'First', 'Last', 'Market', 'Branch', 'Department', 'Organization', 'Activity', 'Type', 'Hours',
+      'Serves LMI', 'Uses financial knowledge', 'CRA qualifying', 'CRA note', 'Source'],
+      rows.map(x => [x.date, x.emp_no, x.first_name, x.last_name, x.market, x.branch, x.department, x.organization, x.activity, x.otype, x.hours,
+        x.cra_lmi ? 'Yes' : 'No', x.cra_finance ? 'Yes' : 'No', x.cra ? 'Yes' : 'No', x.cra_note, x.source])));
   }
   res.json({ year, rows: rows.slice(0, 500), count: rows.length });
 });
 
+// ================= Board seats =================
+const SEAT_SELECT = `
+  SELECT bs.*, e.emp_no, e.first_name, e.last_name, mk.name AS market, b.name AS branch, d.name AS department
+    FROM board_seats bs JOIN employees e ON e.id=bs.employee_id JOIN markets mk ON mk.id=e.market_id
+    LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id`;
+r.get('/board-seats', A.requirePerm('hours.approve', 'reports.cra'), async (req, res) => {
+  const m = A.marketScope(req.user);
+  const status = req.query.status === 'pending' ? 'pending' : null;
+  const rows = await many(`${SEAT_SELECT} WHERE ($1::int IS NULL OR e.market_id=$1) AND ($2::text IS NULL OR bs.status=$2)
+                           ORDER BY bs.status='pending' DESC, bs.is_current DESC, e.last_name LIMIT 5000`, [m, status]);
+  if (req.query.format === 'csv') {
+    if (!A.can(req.user, 'reports.cra') && !A.can(req.user, 'reports.hours')) throw new Bad("You don't have access to reports.", 403);
+    res.type('text/csv').attachment('board-seats.csv');
+    return res.send(toCsv(['Employee #', 'First', 'Last', 'Market', 'Branch', 'Department', 'Organization', 'Title', 'Current', 'Start', 'End',
+      'Serves LMI', 'Uses financial knowledge', 'CRA qualifying', 'Description', 'Status'],
+      rows.map(x => [x.emp_no, x.first_name, x.last_name, x.market, x.branch, x.department, x.org_name, x.title, x.is_current ? 'Yes' : 'No',
+        x.start_date, x.end_date, x.cra_lmi ? 'Yes' : 'No', x.cra_finance ? 'Yes' : 'No', x.cra_lmi && x.cra_finance ? 'Yes' : 'No', x.description, x.status])));
+  }
+  res.json({ rows });
+});
+r.post('/board-seats/:id/decide', A.requirePerm('hours.approve'), async (req, res) => {
+  const id = int(req.params.id, 'id', { min: 1 });
+  const decision = oneOf(req.body?.decision, 'Decision', ['approved', 'rejected']);
+  const note = str(req.body?.note, 'Note', { max: 300, required: decision === 'rejected' });
+  const s = await one('SELECT bs.id, bs.status, bs.employee_id, e.market_id FROM board_seats bs JOIN employees e ON e.id=bs.employee_id WHERE bs.id=$1', [id]);
+  if (!s) throw new Bad('Not found.', 404);
+  assertMarket(req.user, s.market_id);
+  if (s.employee_id === req.user.id) throw new Bad("You can't approve your own board seat.", 403);
+  if (s.status !== 'pending') throw new Bad('That board seat was already reviewed.', 409);
+  await q('UPDATE board_seats SET status=$2, decided_by=$3, decided_at=now(), decision_note=$4 WHERE id=$1', [id, decision, req.user.id, note]);
+  await audit(req.user.id, `board_seat.${decision}`, `board_seat:${id}`, { note });
+  res.json({ ok: true });
+});
+
+// ================= Profile change requests =================
+const PR_SELECT = `
+  SELECT r.id, r.created_at, r.note, r.title AS new_title, r.manager_name AS new_manager,
+         nb.name AS new_branch, nb.market_id AS new_branch_market_id, nm.name AS new_market, nd.name AS new_department,
+         e.id AS employee_id, e.emp_no, e.first_name, e.last_name, e.title, e.manager_name, e.market_id,
+         mk.name AS market, b.name AS branch, d.name AS department
+    FROM profile_requests r JOIN employees e ON e.id=r.employee_id JOIN markets mk ON mk.id=e.market_id
+    LEFT JOIN branches b ON b.id=e.branch_id LEFT JOIN departments d ON d.id=e.department_id
+    LEFT JOIN branches nb ON nb.id=r.branch_id LEFT JOIN markets nm ON nm.id=nb.market_id LEFT JOIN departments nd ON nd.id=r.department_id`;
+
+r.get('/profile-requests', A.requirePerm('people.edit'), async (req, res) => {
+  const m = A.marketScope(req.user);
+  res.json({ rows: await many(`${PR_SELECT} WHERE r.status='pending' AND ($1::int IS NULL OR e.market_id=$1) ORDER BY r.created_at`, [m]) });
+});
+
+r.post('/profile-requests/:id/decide', A.requirePerm('people.edit'), async (req, res) => {
+  const id = int(req.params.id, 'id', { min: 1 });
+  const decision = oneOf(req.body?.decision, 'Decision', ['approved', 'rejected']);
+  const note = str(req.body?.note, 'Note', { max: 300, required: decision === 'rejected' });
+  await tx(async c => {
+    const p = (await c.query(`SELECT r.*, e.market_id AS cur_market, nb.market_id AS new_market
+                                FROM profile_requests r JOIN employees e ON e.id=r.employee_id LEFT JOIN branches nb ON nb.id=r.branch_id
+                               WHERE r.id=$1 FOR UPDATE OF r`, [id])).rows[0];
+    if (!p) throw new Bad('Not found.', 404);
+    assertMarket(req.user, p.cur_market);
+    if (p.employee_id === req.user.id) throw new Bad("You can't approve a change to your own profile.", 403);
+    if (p.status !== 'pending') throw new Bad('That request was already decided.', 409);
+    if (decision === 'approved') {
+      const moving = p.branch_id && p.new_market !== p.cur_market;
+      if (moving && !req.user.roles.includes('admin')) throw new Bad('This change moves them to another market. An Administrator needs to approve it.', 403);
+      const set = {};
+      if (p.branch_id) { set.branch_id = p.branch_id; if (moving) set.market_id = p.new_market; }
+      if (p.department_id) set.department_id = p.department_id;
+      if (p.title) set.title = p.title;
+      if (p.manager_name) set.manager_name = p.manager_name;
+      const keys = Object.keys(set); // fixed whitelist
+      if (keys.length) {
+        await c.query(`UPDATE employees SET ${keys.map((k, i) => `${k}=$${i + 2}`).join(', ')}, updated_at=now() WHERE id=$1`, [p.employee_id, ...keys.map(k => set[k])]);
+      }
+    }
+    await c.query('UPDATE profile_requests SET status=$2, decided_by=$3, decided_at=now(), decision_note=$4 WHERE id=$1', [id, decision, req.user.id, note]);
+    await audit(req.user.id, `profile.change_${decision}`, `profile_request:${id}`, { employee: p.employee_id, note }, c);
+  });
+  res.json({ ok: true });
+});
+
 // ================= Settings =================
 r.get('/settings', A.requirePerm('settings.edit'), async (req, res) => {
-  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', '') });
+  res.json({ impact_rate: Number(await setting('impact_rate', 30)), helpdesk_email: await setting('helpdesk_email', ''),
+    profile_check_months: Number(await setting('profile_check_months', 12)) });
 });
 r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {
   const rate = Number(req.body?.impact_rate);
@@ -405,7 +498,13 @@ r.put('/settings', A.requirePerm('settings.edit'), async (req, res) => {
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Bad('Help desk email is not valid.');
   await q(`INSERT INTO settings (key, value) VALUES ('impact_rate', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(rate)]);
   await q(`INSERT INTO settings (key, value) VALUES ('helpdesk_email', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(email)]);
-  await audit(req.user.id, 'settings.updated', 'settings', { rate, helpdesk_email: email });
+  let months = null;
+  if (req.body?.profile_check_months !== undefined) {
+    months = Number(req.body.profile_check_months);
+    if (![0, 6, 12].includes(months)) throw new Bad('Profile check must be every 6 months, every 12 months, or off.');
+    await q(`INSERT INTO settings (key, value) VALUES ('profile_check_months', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`, [JSON.stringify(months)]);
+  }
+  await audit(req.user.id, 'settings.updated', 'settings', { rate, helpdesk_email: email, profile_check_months: months });
   res.json({ ok: true });
 });
 

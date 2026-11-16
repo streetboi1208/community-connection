@@ -17,7 +17,7 @@ async function seed() {
   await migrate();
   const exists = await one('SELECT count(*)::int AS n FROM employees');
   if (exists.n > 0 && !process.argv.includes('--force')) { console.log('Employees already exist; seed skipped (use --force on a throwaway database).'); return; }
-  if (process.argv.includes('--force')) await q('TRUNCATE checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  if (process.argv.includes('--force')) await q('TRUNCATE board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
 
   const mk = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   const br = {};
@@ -59,6 +59,9 @@ async function seed() {
     creds.push([u, pw]);
   }
 
+  // Fictional managers so the profile check-in has something to show.
+  await q(`UPDATE employees e SET manager_name = CASE m.name WHEN 'Lubbock' THEN 'Jordan Blake' WHEN 'Dallas' THEN 'Renee Castillo' ELSE 'Morgan Hale' END
+             FROM markets m WHERE m.id = e.market_id AND e.manager_name IS NULL`);
   const t = today();
   const opps = [
     ['community', 'Mobile Food Pantry', 'West Texas Food Bank', 'Permian Basin', 'Mobile pantry site, Odessa', '1601 Westcliff Dr, Odessa, TX', 'Help hand out fresh produce and shelf-stable food to families. Closed-toe shoes required.', true, false, [[1, '08:00', '11:00', 12], [8, '08:00', '11:00', 12]]],

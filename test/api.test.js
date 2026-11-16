@@ -49,7 +49,7 @@ async function emp(username, roles, market, { mustChange = false, empNo } = {}) 
 
 test.before(async () => {
   await migrate();
-  await q('TRUNCATE checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  await q('TRUNCATE board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
   M = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   ids.admin = await emp('ana.admin', ['admin'], 'Permian Basin');
   ids.emp = await emp('eli.emp', [], 'Permian Basin');
@@ -114,7 +114,10 @@ test('Administrator creates an opportunity; sign-up respects capacity', async ()
   assert.ok(list.data.opps.some(o => o.id === oppId));
   assert.equal((await e1.post(`/api/opps/${oppId}/signup`, { shiftIds: [shiftId] })).status, 200);
   const e2 = await new Client().login('eva.emp');
-  assert.equal((await e2.post(`/api/opps/${oppId}/signup`, { shiftIds: [shiftId] })).status, 409, 'shift is full');
+  const full = await e2.post(`/api/opps/${oppId}/signup`, { shiftIds: [shiftId] });
+  assert.equal(full.status, 200); assert.deepEqual(full.data.waitlisted, [shiftId], 'a full shift puts you on the waitlist');
+  const wid = (await one('SELECT id FROM waitlist WHERE shift_id=$1 AND employee_id=$2', [shiftId, ids.emp2])).id;
+  assert.equal((await e2.req('DELETE', `/api/waitlist/${wid}`)).status, 200);
   // A Lubbock employee does not see it by default, but does with View all
   const l = await new Client().login('leo.lbk');
   assert.ok(!(await l.get('/api/opps')).data.opps.some(o => o.id === oppId));
@@ -254,4 +257,157 @@ test('sign-in page shows the help desk email once an admin sets it', async () =>
 test('audit log records admin actions', async () => {
   const n = (await one(`SELECT count(*)::int AS n FROM audit_log WHERE action IN ('opp.create','hours.approved','account.reset','roster.imported','kiosk.opened')`)).n;
   assert.ok(n >= 5);
+});
+
+test('profile check-in: confirm, request a change, and admin review rules', async () => {
+  const pb = (await one(`INSERT INTO branches (name, market_id) VALUES ('Check HQ', $1) RETURNING id`, [M['Permian Basin']])).id;
+  const lb = (await one(`INSERT INTO branches (name, market_id) VALUES ('Check Lubbock', $1) RETURNING id`, [M.Lubbock])).id;
+  const dep = (await one(`INSERT INTO departments (name) VALUES ('Check Dept') RETURNING id`)).id;
+  await q(`UPDATE settings SET value='12' WHERE key='profile_check_months'`);
+
+  // Never confirmed, so the check-in is due; confirming clears it.
+  const e = await new Client().login('leo.lbk');
+  assert.equal((await e.get('/api/me')).data.checkin.due, true);
+  assert.equal((await e.post('/api/me/confirm')).status, 200);
+  assert.equal((await e.get('/api/me')).data.checkin.due, false);
+  // Overdue again after a year
+  await q(`UPDATE employees SET info_confirmed_at = now() - interval '13 months' WHERE id=$1`, [ids.lbkEmp]);
+  assert.equal((await e.get('/api/me')).data.checkin.due, true);
+
+  // An empty request is refused; a real one is stored and does NOT change the profile yet.
+  assert.equal((await e.post('/api/me/change-request', {})).status, 400);
+  const r1 = await e.post('/api/me/change-request', { department_id: dep, manager_name: 'Pat Doe', note: 'New team' });
+  assert.equal(r1.status, 200);
+  const me = (await e.get('/api/me')).data;
+  assert.equal(me.user.department_id, null);
+  assert.equal(me.checkin.due, false);
+  assert.ok(me.checkin.pending);
+  assert.equal((await e.post('/api/me/change-request', { note: 'again' })).status, 409, 'one pending request at a time');
+
+  // A Market admin in another market can't see or decide it; the Lubbock one can.
+  const outside = await new Client().login('max.mkt');
+  assert.equal((await outside.get('/api/admin/profile-requests')).status, 403);
+  const lu = await new Client().login('lu.mkta');
+  const list = (await lu.get('/api/admin/profile-requests')).data.rows;
+  assert.equal(list.length, 1);
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r1.data.id}/decide`, { decision: 'rejected' })).status, 400, 'decline needs a reason');
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r1.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const after = await one('SELECT department_id, manager_name FROM employees WHERE id=$1', [ids.lbkEmp]);
+  assert.equal(after.department_id, dep);
+  assert.equal(after.manager_name, 'Pat Doe');
+
+  // A branch in another market needs an Administrator.
+  const r2 = await e.post('/api/me/change-request', { branch_id: pb });
+  assert.equal(r2.status, 200);
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r2.data.id}/decide`, { decision: 'approved' })).status, 403);
+  const admin = await new Client().login('ana.admin');
+  assert.equal((await admin.post(`/api/admin/profile-requests/${r2.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const moved = await one('SELECT branch_id, market_id FROM employees WHERE id=$1', [ids.lbkEmp]);
+  assert.equal(moved.branch_id, pb);
+  assert.equal(moved.market_id, M['Permian Basin']);
+  await q('UPDATE employees SET market_id=$2, branch_id=$3 WHERE id=$1', [ids.lbkEmp, M.Lubbock, lb]);
+
+  // Nobody approves their own change.
+  const r3 = await (await new Client().login('lu.mkta')).post('/api/me/change-request', { note: 'my title is wrong' });
+  assert.equal((await lu.post(`/api/admin/profile-requests/${r3.data.id}/decide`, { decision: 'approved' })).status, 403);
+
+  // Admin can turn the check-in off.
+  assert.equal((await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 0 })).status, 200);
+  await q(`UPDATE employees SET info_confirmed_at = NULL WHERE id=$1`, [ids.emp]);
+  assert.equal((await (await new Client().login('eli.emp')).get('/api/me')).data.checkin.due, false);
+  assert.equal((await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 3 })).status, 400);
+  await admin.req('PUT', '/api/admin/settings', { impact_rate: 30, profile_check_months: 12 });
+});
+
+test('full preview needs a signed-in user', async () => {
+  const anon = await new Client().get('/preview');
+  assert.equal(anon.status, 302);
+  const signed = await (await new Client().login('eli.emp')).get('/preview');
+  assert.equal(signed.status, 200);
+});
+
+test('waitlist moves people up first come, first served', async () => {
+  const a = await new Client().login('ana.admin');
+  const body = cap => ({ otype: 'community', market_id: M['Permian Basin'], title: 'Coat drive', nonprofit: 'Coats', location: 'HQ',
+    shifts: [{ id: wsid, date: addDays(5), start: '09:00', end: '11:00', capacity: cap }] });
+  let wsid;
+  const o = await a.post('/api/admin/opps', { ...body(1), shifts: [{ date: addDays(5), start: '09:00', end: '11:00', capacity: 1 }] });
+  wsid = (await one('SELECT id FROM shifts WHERE opp_id=$1', [o.data.id])).id;
+  const eli = await new Client().login('eli.emp'), eva = await new Client().login('eva.emp'), it = await new Client().login('ivy.it'), cc = await new Client().login('cc.ccm');
+  assert.deepEqual((await eli.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [wsid] })).data.added, [wsid]);
+  assert.deepEqual((await eva.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [wsid] })).data.waitlisted, [wsid]);
+  assert.deepEqual((await it.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [wsid] })).data.waitlisted, [wsid]);
+  assert.deepEqual((await cc.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [wsid] })).data.waitlisted, [wsid]);
+  const d = await it.get(`/api/opps/${o.data.id}`);
+  const sh = d.data.shifts.find(x => x.id === wsid);
+  assert.equal(sh.waiting, 3); assert.equal(sh.my_place, 2);
+  // Eli cancels: Eva (first in line) moves up
+  const sid = (await one('SELECT id FROM signups WHERE shift_id=$1 AND employee_id=$2', [wsid, ids.emp])).id;
+  assert.equal((await eli.req('DELETE', `/api/signups/${sid}`)).status, 200);
+  const evaAct = await eva.get('/api/activity');
+  assert.ok(evaAct.data.upcoming.some(u => u.shift_id === wsid || u.opp_id === o.data.id && u.from_waitlist), 'Eva moved up');
+  assert.equal((await it.get('/api/activity')).data.waiting[0].place, 1, 'IT is now first in line');
+  // Admin adds a spot: IT moves up next, committee member stays waiting
+  assert.equal((await a.req('PUT', `/api/admin/opps/${o.data.id}`, body(2))).status, 200);
+  const signed = (await q('SELECT employee_id FROM signups WHERE shift_id=$1 ORDER BY id', [wsid])).rows.map(r => r.employee_id);
+  assert.deepEqual(signed, [ids.emp2, ids.it]);
+  assert.equal((await cc.get('/api/activity')).data.waiting.length, 1);
+  const ro = await a.get(`/api/admin/opps/${o.data.id}/roster`);
+  assert.deepEqual(ro.data.waiting.map(w => w.first_name), ['cc']);
+});
+
+test('CRA questions on events and logged hours feed the CRA export', async () => {
+  const a = await new Client().login('ana.admin');
+  const mk = (lmi, fin, otype = 'community') => a.post('/api/admin/opps', { otype, market_id: M['Permian Basin'], title: `CRA ${lmi}${fin}${otype}`, nonprofit: 'Casa', location: 'Casa',
+    cra_lmi: lmi, cra_finance: fin, shifts: [{ date: addDays(2), start: '18:00', end: '20:00', capacity: 5 }] });
+  const both = await mk(true, true), one1 = await mk(true, false), soc = await mk(true, true, 'social');
+  const row = id => one('SELECT cra, cra_lmi, cra_finance FROM opportunities WHERE id=$1', [id]);
+  assert.deepEqual(await row(both.data.id), { cra: true, cra_lmi: true, cra_finance: true });
+  assert.deepEqual(await row(one1.data.id), { cra: false, cra_lmi: true, cra_finance: false });
+  assert.deepEqual(await row(soc.data.id), { cra: false, cra_lmi: false, cra_finance: false }, 'off-the-clock events never count');
+  const e = await new Client().login('eva.emp');
+  const h = await e.post('/api/hours', { date: addDays(-3), hours: 2, org_name: 'Casa de Amigos', details: 'Taught budgeting', cra_lmi: true, cra_finance: true });
+  assert.equal((await a.post(`/api/admin/hours/${h.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const c = await new Client().login('cy.comp');
+  const csv = await c.get(`/api/admin/reports/hours?year=${today().slice(0, 4)}&cra=1&format=csv`);
+  assert.equal(csv.status, 200);
+  assert.match(csv.data, /Serves LMI,Uses financial knowledge,CRA qualifying/);
+  assert.match(csv.data, /Casa de Amigos.*,Yes,Yes,Yes,/);
+});
+
+test('board seats: employees add them, a coordinator reviews, CRA export lists them', async () => {
+  const e = await new Client().login('eva.emp');
+  assert.equal((await e.post('/api/board-seats', { org_name: 'Habitat', title: 'Treasurer', start_date: addDays(-400), is_current: false, description: 'x' })).status, 400, 'end date needed');
+  const s = await e.post('/api/board-seats', { org_name: 'Habitat for Humanity', title: 'Treasurer', start_date: addDays(-400), is_current: true, description: 'Board finance', cra_lmi: true, cra_finance: true });
+  assert.equal(s.status, 200);
+  const other = await new Client().login('eli.emp');
+  assert.equal((await other.req('DELETE', `/api/board-seats/${s.data.id}`)).status, 404, 'cannot touch someone else\'s seat');
+  assert.equal((await new Client().login('lu.mkta').then(m => m.post(`/api/admin/board-seats/${s.data.id}/decide`, { decision: 'approved' }))).status, 403, 'other market');
+  const a = await new Client().login('ana.admin');
+  assert.ok((await a.get('/api/admin/board-seats?status=pending')).data.rows.some(x => x.id === s.data.id));
+  assert.equal((await a.post(`/api/admin/board-seats/${s.data.id}/decide`, { decision: 'rejected' })).status, 400, 'decline needs a reason');
+  assert.equal((await a.post(`/api/admin/board-seats/${s.data.id}/decide`, { decision: 'approved' })).status, 200);
+  const own = await a.post('/api/board-seats', { org_name: 'Rotary', title: 'Member', start_date: addDays(-10), is_current: true, description: 'Club' });
+  assert.equal((await a.post(`/api/admin/board-seats/${own.data.id}/decide`, { decision: 'approved' })).status, 403, 'no self-approval');
+  const csv = await (await new Client().login('cy.comp')).get('/api/admin/board-seats?format=csv');
+  assert.equal(csv.status, 200);
+  assert.match(csv.data, /Habitat for Humanity,Treasurer,Yes,.*,Yes,Yes,Yes,Board finance,approved/);
+  // Editing sends it back for review
+  assert.equal((await e.req('PUT', `/api/board-seats/${s.data.id}`, { org_name: 'Habitat for Humanity', title: 'Chair', start_date: addDays(-400), is_current: true, description: 'Board chair', cra_lmi: true, cra_finance: true })).status, 200);
+  assert.equal((await one('SELECT status FROM board_seats WHERE id=$1', [s.data.id])).status, 'pending');
+});
+
+test('volunteer résumé shows approved hours and approved seats only', async () => {
+  const a = await new Client().login('ana.admin');
+  const e = await new Client().login('eli.emp');
+  const seat = await e.post('/api/board-seats', { org_name: 'United Way', title: 'Board member', start_date: addDays(-100), is_current: true, description: 'Allocations' });
+  let r = await e.get('/api/resume');
+  assert.equal(r.status, 200);
+  assert.ok(!r.data.seats.some(x => x.org_name === 'United Way'), 'pending seat not shown');
+  await a.post(`/api/admin/board-seats/${seat.data.id}/decide`, { decision: 'approved' });
+  r = await e.get('/api/resume');
+  assert.ok(r.data.seats.some(x => x.org_name === 'United Way'));
+  assert.ok(r.data.totals.hours >= 2, 'approved Habitat hours from earlier test');
+  assert.equal(r.data.totals.rate, 30);
+  assert.ok(r.data.activity.every(x => x.hours > 0));
 });
