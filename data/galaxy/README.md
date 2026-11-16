@@ -7,3 +7,4 @@ Loaded into the pilot on start by `db/import-galaxy.js`. Approved by Eddie Monto
 - 2025 totals 2,327.75 hours. Eddie's year-end summary says 2,316.25; the 11.5-hour difference is per-branch adjustments that aren't tied to a person.
 
 No emails, phone numbers, birthdays, addresses or emergency contacts are included.
+- `guests.csv`: 80 friends-and-family sign-ups (no guest names; a code per guest), each credited to the employee(s) on the same team for that shift. Used by the Report builder's Friends and family report.

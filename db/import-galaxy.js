@@ -25,11 +25,15 @@ async function importGalaxy({ log = console.log } = {}) {
   if (!fs.existsSync(path.join(DIR, 'roster.csv'))) return { skipped: true };
   await q(`ALTER TABLE hours ADD COLUMN IF NOT EXISTS import_key text`);
   await q(`CREATE UNIQUE INDEX IF NOT EXISTS hours_import_key ON hours(import_key) WHERE import_key IS NOT NULL`);
-  const hash = crypto.createHash('sha1').update(fs.readFileSync(path.join(DIR, 'roster.csv'))).update(fs.readFileSync(path.join(DIR, 'hours.csv'))).digest('hex');
+  // Bump VERSION when the import logic changes, so the next start re-syncs even if the files didn't.
+  const VERSION = '2';
+  const files = ['roster.csv', 'hours.csv', 'guests.csv'].filter(f => fs.existsSync(path.join(DIR, f)));
+  const hash = files.reduce((hh, f) => hh.update(fs.readFileSync(path.join(DIR, f))), crypto.createHash('sha1').update(VERSION)).digest('hex');
   const prev = (await q(`SELECT value FROM settings WHERE key='galaxy_import'`)).rows[0];
   if (prev && prev.value && prev.value.hash === hash) { log('Galaxy history: already up to date.'); return { unchanged: true }; }
   const roster = read('roster.csv');
   const hours = read('hours.csv');
+  const guests = fs.existsSync(path.join(DIR, 'guests.csv')) ? read('guests.csv') : [];
   const result = await tx(async c => {
     const mk = Object.fromEntries((await c.query('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
     const branch = {}; const dept = {};
@@ -55,14 +59,14 @@ async function importGalaxy({ log = console.log } = {}) {
     for (const x of roster) {
       const m = mk[x.market] || mk['Permian Basin'];
       const r = await c.query(
-        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, active)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `INSERT INTO employees (emp_no, first_name, last_name, market_id, branch_id, department_id, title, officer, active, culture_committee)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          ON CONFLICT (emp_no) DO UPDATE SET first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, market_id=EXCLUDED.market_id,
            branch_id=EXCLUDED.branch_id, department_id=EXCLUDED.department_id, title=EXCLUDED.title, officer=EXCLUDED.officer,
-           active=EXCLUDED.active, updated_at=now()
+           active=EXCLUDED.active, culture_committee=EXCLUDED.culture_committee, updated_at=now()
          RETURNING id`,
         [x.emp_no, x.first_name, x.last_name || '-', m, await branchId(x.branch, m), await deptId(x.department), x.title || null,
-          x.officer === 'yes', x.active === 'yes']);
+          x.officer === 'yes', x.active === 'yes', x.culture_committee === 'Yes']);
       ids[x.emp_no] = r.rows[0].id;
     }
     await c.query(`UPDATE employees SET active=false, updated_at=now() WHERE emp_no LIKE 'G-%' AND NOT (emp_no = ANY($1::text[]))`, [roster.map(x => x.emp_no)]);
@@ -78,8 +82,16 @@ async function importGalaxy({ log = console.log } = {}) {
           (h.activity ? h.activity + ' ' : '') + '(Galaxy import)', h.import_key]);
       added += r.rowCount;
     }
+    // Friends and family: guests credited to the employee(s) who brought them. No guest names are stored.
+    await c.query(`DELETE FROM guest_hours WHERE import_key IS NOT NULL`);
+    for (const g of guests) {
+      const minutes = Math.min(1440, Math.max(0, Math.round(Number(g.hours || 0) * 60)));
+      await c.query(`INSERT INTO guest_hours (host_ids, guest_code, date, minutes, otype, org_name, details, import_key) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [(g.host_emp_nos ? g.host_emp_nos.split('|') : []).map(x => ids[x]).filter(Boolean), g.guest_code, g.date, minutes,
+          ['community', 'bank'].includes(g.type) ? g.type : 'other', g.organization || null, g.activity || null, g.import_key]);
+    }
     await c.query(`INSERT INTO settings (key, value) VALUES ('galaxy_import', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`,
-      [JSON.stringify({ at: new Date().toISOString(), hash, people: roster.length, hours: hours.length })]);
+      [JSON.stringify({ at: new Date().toISOString(), hash, people: roster.length, hours: hours.length, guests: guests.length })]);
     await c.query(`INSERT INTO audit_log (action, target, detail) VALUES ('galaxy.imported', 'roster+hours', $1)`,
       [JSON.stringify({ people: roster.length, hours_rows: hours.length, hash })]);
     if (first) {

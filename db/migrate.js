@@ -55,6 +55,25 @@ async function migrate() {
     decision_note text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now())`);
+  // Report builder: Culture Committee flag, friends-and-family (guest) records, and saved reports.
+  await pool.query(`ALTER TABLE employees ADD COLUMN IF NOT EXISTS culture_committee boolean NOT NULL DEFAULT false`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS guest_hours (
+    id serial PRIMARY KEY,
+    host_ids int[] NOT NULL DEFAULT '{}',
+    guest_code text NOT NULL,
+    date date NOT NULL,
+    minutes int NOT NULL DEFAULT 0 CHECK (minutes >= 0 AND minutes <= 24*60),
+    otype text NOT NULL CHECK (otype IN ('community','bank','other')),
+    org_name text,
+    details text,
+    import_key text UNIQUE)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS guest_hours_date_idx ON guest_hours(date)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS saved_reports (
+    id serial PRIMARY KEY,
+    name text NOT NULL,
+    params jsonb NOT NULL,
+    created_by int REFERENCES employees(id),
+    created_at timestamptz NOT NULL DEFAULT now())`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('profile_check_months', '12') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO markets (name) VALUES ('Permian Basin'),('Lubbock'),('Dallas') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '34.99') ON CONFLICT DO NOTHING`);

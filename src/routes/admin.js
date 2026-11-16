@@ -526,4 +526,6 @@ r.post('/kiosk', A.requirePerm('kiosk.run'), async (req, res) => {
   res.json({ ok: true, token, url: `/kiosk.html#${token}` });
 });
 
+require('./report-builder')(r);
+
 module.exports = r;
