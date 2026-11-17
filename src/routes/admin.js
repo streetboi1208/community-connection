@@ -4,7 +4,7 @@ const { q, one, many, tx, audit, setting } = require('../db');
 const A = require('../auth');
 const { Bad, str, int, bool, isoDate, hhmm, oneOf, today, parseCsv, toCsv } = require('../util');
 
-const { promoteWaitlist } = require('../waitlist');
+const { promoteWaitlist, SPOTS } = require('../waitlist');
 const r = express.Router();
 
 // Every admin route needs a signed-in user with at least one role.
@@ -35,7 +35,7 @@ r.get('/opps', A.requirePerm('opps.create', 'rosters.view', 'kiosk.run'), async 
             (SELECT min(date) FROM shifts WHERE opp_id=o.id) AS first_date,
             (SELECT max(date) FROM shifts WHERE opp_id=o.id) AS last_date,
             (SELECT COALESCE(sum(capacity),0)::int FROM shifts WHERE opp_id=o.id) AS cap,
-            (SELECT count(*)::int FROM signups su JOIN shifts s ON s.id=su.shift_id WHERE s.opp_id=o.id) AS filled
+            (SELECT ${SPOTS} FROM signups su JOIN shifts s ON s.id=su.shift_id WHERE s.opp_id=o.id) AS filled
        FROM opportunities o JOIN markets m ON m.id=o.market_id LEFT JOIN nonprofits n ON n.id=o.nonprofit_id
       WHERE ($1::int IS NULL OR o.market_id=$1) AND ($2 OR (SELECT max(date) FROM shifts WHERE opp_id=o.id) >= $3::date)
       ORDER BY first_date DESC NULLS FIRST, o.id DESC LIMIT 300`, [m, req.query.past === '1', today()]);
@@ -86,7 +86,8 @@ async function saveOpp(req, id) {
   const lmi = otype === 'social' ? false : bool(b.cra_lmi);
   const fin = otype === 'social' ? false : bool(b.cra_finance);
   const cols = [otype, title, nonprofitId, marketId, location, address, description, bool(b.collect_shirts), lmi && fin,
-    str(b.cra_note, 'CRA note', { max: 300, required: false }), status, lmi, fin];
+    str(b.cra_note, 'CRA note', { max: 300, required: false }), status, lmi, fin,
+    b.max_guests === undefined ? 4 : int(b.max_guests, 'Guests per employee', { min: 0, max: 10 })];
   return tx(async c => {
     let oppId = id;
     if (id) {
@@ -94,10 +95,10 @@ async function saveOpp(req, id) {
       if (!cur) throw new Bad('Not found.', 404);
       assertMarket(req.user, cur.market_id);
       await c.query(`UPDATE opportunities SET otype=$2,title=$3,nonprofit_id=$4,market_id=$5,location=$6,address=$7,description=$8,
-                     collect_shirts=$9,cra=$10,cra_note=$11,status=$12,cra_lmi=$13,cra_finance=$14 WHERE id=$1`, [id, ...cols]);
+                     collect_shirts=$9,cra=$10,cra_note=$11,status=$12,cra_lmi=$13,cra_finance=$14,max_guests=$15 WHERE id=$1`, [id, ...cols]);
     } else {
-      oppId = (await c.query(`INSERT INTO opportunities (otype,title,nonprofit_id,market_id,location,address,description,collect_shirts,cra,cra_note,status,cra_lmi,cra_finance,created_by)
-                              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`, [...cols, req.user.id])).rows[0].id;
+      oppId = (await c.query(`INSERT INTO opportunities (otype,title,nonprofit_id,market_id,location,address,description,collect_shirts,cra,cra_note,status,cra_lmi,cra_finance,max_guests,created_by)
+                              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`, [...cols, req.user.id])).rows[0].id;
     }
     const keep = shifts.filter(s => s.id).map(s => s.id);
     // Removing a shift that has sign-ups is blocked so nobody is silently dropped.
@@ -107,8 +108,8 @@ async function saveOpp(req, id) {
     await c.query('DELETE FROM shifts WHERE opp_id=$1 AND NOT (id = ANY($2::int[]))', [oppId, keep]);
     for (const s of shifts) {
       if (s.id) {
-        const n = (await c.query('SELECT count(*)::int AS n FROM signups WHERE shift_id=$1', [s.id])).rows[0].n;
-        if (s.capacity < n) throw new Bad(`A shift has ${n} people signed up; spots can't go below that.`, 409);
+        const n = (await c.query(`SELECT ${SPOTS} AS n FROM signups WHERE shift_id=$1`, [s.id])).rows[0].n;
+        if (s.capacity < n) throw new Bad(`A shift has ${n} people signed up (guests included); spots can't go below that.`, 409);
         const u = await c.query('UPDATE shifts SET date=$3,start_time=$4,end_time=$5,capacity=$6,label=$7 WHERE id=$1 AND opp_id=$2',
           [s.id, oppId, s.date, s.start, s.end, s.capacity, s.label]);
         if (!u.rowCount) throw new Bad('A shift was not found.');
@@ -133,17 +134,19 @@ r.get('/opps/:id/roster', A.requirePerm('rosters.view', 'kiosk.run'), async (req
   assertMarket(req.user, o.market_id);
   const rows = await many(
     `SELECT s.id AS shift_id, s.date, to_char(s.start_time,'HH24:MI') AS start, to_char(s.end_time,'HH24:MI') AS "end", s.capacity, s.label,
-            e.id AS employee_id, e.first_name, e.last_name, b.name AS branch, su.shirt_size
+            e.id AS employee_id, e.first_name, e.last_name, b.name AS branch, su.shirt_size, COALESCE(su.guests, '[]') AS guests
        FROM shifts s LEFT JOIN signups su ON su.shift_id=s.id LEFT JOIN employees e ON e.id=su.employee_id
        LEFT JOIN branches b ON b.id=e.branch_id
       WHERE s.opp_id=$1 ORDER BY s.date, s.start_time, e.last_name`, [id]);
   if (req.query.format === 'csv') {
     res.type('text/csv').attachment(`roster-${id}.csv`);
-    return res.send(toCsv(['Date', 'Start', 'End', 'Shift', 'First', 'Last', 'Branch', 'Shirt'],
-      rows.filter(x => x.employee_id).map(x => [x.date, x.start, x.end, x.label, x.first_name, x.last_name, x.branch, x.shirt_size])));
+    // One row per person; guests follow their host, marked as guests.
+    return res.send(toCsv(['Date', 'Start', 'End', 'Shift', 'First', 'Last', 'Branch', 'Shirt', 'Guest of'],
+      rows.filter(x => x.employee_id).flatMap(x => [[x.date, x.start, x.end, x.label, x.first_name, x.last_name, x.branch, x.shirt_size, ''],
+        ...x.guests.map(g => { const [f, ...l] = g.name.split(' '); return [x.date, x.start, x.end, x.label, f, l.join(' '), '', g.size || '', `${x.first_name} ${x.last_name}`]; })])));
   }
   const waiting = await many(
-    `SELECT w.shift_id, e.first_name, e.last_name, w.created_at FROM waitlist w JOIN shifts s ON s.id=w.shift_id JOIN employees e ON e.id=w.employee_id
+    `SELECT w.shift_id, e.first_name, e.last_name, jsonb_array_length(w.guests) AS guests, w.created_at FROM waitlist w JOIN shifts s ON s.id=w.shift_id JOIN employees e ON e.id=w.employee_id
       WHERE s.opp_id=$1 ORDER BY w.shift_id, w.created_at, w.id`, [id]);
   res.json({ opp: o, rows, waiting });
 });

@@ -74,6 +74,10 @@ async function migrate() {
     params jsonb NOT NULL,
     created_by int REFERENCES employees(id),
     created_at timestamptz NOT NULL DEFAULT now())`);
+  // Guests at sign-up: named family or friends an employee brings. Each takes a spot on the shift.
+  await pool.query(`ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS max_guests int NOT NULL DEFAULT 4`);
+  await pool.query(`ALTER TABLE signups ADD COLUMN IF NOT EXISTS guests jsonb NOT NULL DEFAULT '[]'`);
+  await pool.query(`ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS guests jsonb NOT NULL DEFAULT '[]'`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('profile_check_months', '12') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO markets (name) VALUES ('Permian Basin'),('Lubbock'),('Dallas') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '34.99') ON CONFLICT DO NOTHING`);

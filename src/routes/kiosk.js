@@ -1,4 +1,5 @@
 'use strict';
+const crypto = require('crypto');
 // Kiosk check-in on a shared iPad. No employee signs in: the device holds a kiosk token
 // that only allows check-in/out for one opportunity, and expires after 18 hours.
 const express = require('express');
@@ -40,11 +41,12 @@ r.get('/search', async (req, res) => {
   const rows = await many(
     `SELECT e.id, e.first_name, e.last_name, b.name AS branch,
             EXISTS (SELECT 1 FROM signups su JOIN shifts sh ON sh.id=su.shift_id WHERE sh.opp_id=$2 AND su.employee_id=e.id) AS signed_up,
+            (SELECT max(jsonb_array_length(su.guests)) FROM signups su JOIN shifts sh ON sh.id=su.shift_id WHERE sh.opp_id=$2 AND su.employee_id=e.id AND sh.date=$3::date) AS guests,
             EXISTS (SELECT 1 FROM checkins c WHERE c.opp_id=$2 AND c.employee_id=e.id) AS checked_in
        FROM employees e LEFT JOIN branches b ON b.id=e.branch_id
       WHERE e.active AND (lower(e.first_name||' '||e.last_name) LIKE $1 OR lower(e.last_name) LIKE $1)
-      ORDER BY signed_up DESC, e.first_name LIMIT 8`, [`%${s.replace(/[%_]/g, '')}%`, req.kiosk.opp_id]);
-  res.json({ rows: rows.map(x => ({ id: x.id, name: nameOf(x), branch: x.branch, signedUp: x.signed_up, checkedIn: x.checked_in })) });
+      ORDER BY signed_up DESC, e.first_name LIMIT 8`, [`%${s.replace(/[%_]/g, '')}%`, req.kiosk.opp_id, today()]);
+  res.json({ rows: rows.map(x => ({ id: x.id, name: nameOf(x), branch: x.branch, signedUp: x.signed_up, guests: x.guests || 0, checkedIn: x.checked_in })) });
 });
 
 r.post('/checkin', async (req, res) => {
@@ -81,6 +83,17 @@ r.post('/checkout', async (req, res) => {
       `INSERT INTO hours (employee_id, opp_id, source, date, minutes, otype, guests, check_in, check_out, status, decided_by, decided_at, created_by)
        VALUES ($1,$2,'kiosk',$3,$4,$5,$6,$7,now(),'approved',$8,now(),$8)`,
       [id, k.opp_id, today(), Math.min(minutes, 24 * 60), k.otype, ci.guests, ci.check_in, k.opened_by]);
+    // Friends and family: each guest is credited to this employee. Names stay on the sign-up, not here.
+    if (ci.guests) {
+      const names = ((await c.query(`SELECT su.guests FROM signups su JOIN shifts sh ON sh.id=su.shift_id
+                                      WHERE sh.opp_id=$1 AND su.employee_id=$2 AND sh.date=$3::date LIMIT 1`, [k.opp_id, id, today()])).rows[0] || { guests: [] }).guests;
+      for (let i = 0; i < ci.guests; i++) {
+        const who = names[i] ? names[i].name.toLowerCase() : `walk-in ${new Date(ci.check_in).getTime()}-${i}`;
+        const code = 'K' + crypto.createHash('sha1').update(`${id}|${who}`).digest('hex').slice(0, 10);
+        await c.query(`INSERT INTO guest_hours (host_ids, guest_code, date, minutes, otype, org_name, details)
+                       VALUES ($1,$2,$3,$4,$5,$6,'Kiosk check-in')`, [[id], code, today(), Math.min(minutes, 24 * 60), k.otype, k.nonprofit || k.title]);
+      }
+    }
     return { minutes };
   });
   await audit(null, 'kiosk.checkout', `opp:${k.opp_id}`, { employee: id, minutes: out.minutes });

@@ -83,3 +83,10 @@ body{margin:0}
 @media (max-width:1180px){.nav a svg{display:none}}
 /* Number columns: headers line up with their numbers (right-aligned). */
 table th.num,.stbl th.num{text-align:right}
+/* Guests at sign-up */
+.vglist{display:flex;flex-direction:column;gap:8px}
+.vgrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface-2);border-radius:8px;padding:8px}
+.vgrow .input[data-vgn]{flex:1 1 120px;min-width:0}
+.vgrow .btn{flex:0 0 auto}
+#vgAdd{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}#vgAdd svg{width:18px;height:18px}
+.guestrow td{background:#fafafa;font-size:.88em}

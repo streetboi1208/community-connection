@@ -219,6 +219,12 @@
     const { opp: o, shifts, going } = await get('/opps/' + id);
     const open = shifts.filter(s => !s.my_signup && !s.my_wait);
     const anyOpen = open.some(s => s.filled < s.capacity);
+    const maxG = o.max_guests || 0;
+    const vg = (S.vg && S.vg.opp === id) ? S.vg.list : [];
+    S.vg = { opp: id, list: vg };
+    const guestRows = () => vg.map((g, i) => `<div class="vgrow"><input class="input" data-vgn="${i}" value="${esc(g.name)}" placeholder="Guest ${i + 1} full name" aria-label="Guest ${i + 1} full name" maxlength="80">${o.collect_shirts ? `<select class="input" data-vgs="${i}" aria-label="Guest ${i + 1} shirt size" style="width:auto"><option value="">Shirt size</option>${S.meta.sizes.map(z => `<option ${g.size === z ? 'selected' : ''}>${z}</option>`).join('')}</select>` : ''}<button type="button" class="btn sm ghost" data-vgrm="${i}" aria-label="Remove guest ${i + 1}">${I.x || '✕'}</button></div>`).join('')
+      + (vg.length < maxG ? `<button type="button" class="btn sm ghost" id="vgAdd" style="align-self:flex-start">${I.plus} Add a guest</button>` : `<small class="muted">Up to ${maxG} guest${maxG > 1 ? 's' : ''} for this one.</small>`);
+    const guestNote = g => g && g.length ? `<br><small class="sub">With ${g.map(x => esc(x.name)).join(', ')}</small>` : '';
     main.innerHTML = `<a class="back" href="#/volunteer">${I.left}All opportunities</a>
       <div class="detail"><div class="panel">
         <div class="eyebrow">${esc(o.nonprofit || 'Community National Bank')}</div><h1>${esc(o.title)}</h1>
@@ -230,12 +236,14 @@
       <form class="panel" id="sf"><h2>Pick your shifts</h2>
         ${shifts.map(s => `<label class="shift ${s.my_signup ? 'mine' : ''} ${!s.my_signup && s.filled >= s.capacity ? 'full' : ''}">
           ${s.my_signup || s.my_wait ? '' : `<input type="checkbox" name="shift" value="${s.id}">`}
-          <span class="t"><b>${fmtDate(s.date)}</b>, ${fmtT(s.start)} – ${fmtT(s.end)}${s.label ? `<br><small class="sub">${esc(s.label)}</small>` : ''}</span>
+          <span class="t"><b>${fmtDate(s.date)}</b>, ${fmtT(s.start)} – ${fmtT(s.end)}${s.label ? `<br><small class="sub">${esc(s.label)}</small>` : ''}${s.my_signup ? guestNote(s.my_guests) : ''}</span>
           <span class="cap">${s.my_signup ? `<button type="button" class="btn sm ghost" data-cancel="${s.my_signup}">Cancel</button>`
             : s.my_wait ? `<span class="pill warn">#${s.my_place} on waitlist</span> <button type="button" class="btn sm ghost" data-leave="${s.my_wait}">Leave</button>`
             : s.filled >= s.capacity ? `Full · join waitlist${s.waiting ? ` (${s.waiting} waiting)` : ''}` : `${s.capacity - s.filled} of ${s.capacity} open`}</span></label>`).join('')}
         ${shifts.some(s => !s.my_signup && !s.my_wait && s.filled >= s.capacity) ? '<small class="muted">Full shifts have a waitlist. If a spot opens, the next person in line moves up automatically and sees it in My activity.</small>' : ''}
         ${o.collect_shirts && open.length ? `<div class="field"><label for="sz">Shirt size</label><select class="input" id="sz" name="shirt_size" required><option value="">Pick a size</option>${S.meta.sizes.map(z => `<option ${S.me.shirt_size === z ? 'selected' : ''}>${z}</option>`).join('')}</select></div>` : ''}
+        ${maxG && open.length ? `<div class="field"><span class="flabel">Bringing anyone? <span class="muted" style="font-weight:500">(family or friends, not employees)</span></span><div class="vglist" id="vgl">${guestRows()}</div>
+          <small class="muted">Guests join you on every shift you pick and take a spot each.${o.collect_shirts ? ' Each guest needs a shirt size.' : ''} Guests don't earn points. Anyone under 18 needs a parent or guardian with them.</small></div>` : ''}
         <p class="err" id="se" hidden></p>
         ${open.length ? `<button class="btn red" type="submit">${anyOpen ? 'Sign me up' : 'Join the waitlist'}</button>` : '<p class="muted">You\'re on every shift here.</p>'}
       </form></div>`;
@@ -245,13 +253,24 @@
       const ids = [...f.querySelectorAll('input[name=shift]:checked')].map(x => Number(x.value));
       if (!ids.length) return showErr($('#se'), new Error('Pick at least one shift.'));
       try {
-        const r = await api('POST', `/opps/${id}/signup`, { shiftIds: ids, shirt_size: f.shirt_size ? f.shirt_size.value : undefined });
+        const r = await api('POST', `/opps/${id}/signup`, { shiftIds: ids, shirt_size: f.shirt_size ? f.shirt_size.value : undefined, guests: vg });
+        S.vg = null;
         const w = (r.waitlisted || []).length, a = (r.added || []).length;
         toast(a && w ? `Signed up for ${a} shift${a > 1 ? 's' : ''} and waitlisted for ${w}.` : w ? "You're on the waitlist. We'll move you up if a spot opens." : "You're signed up. Thank you!"); vOpp(id);
       } catch (err) { showErr($('#se'), err); }
     });
+    const vgl = $('#vgl');
+    if (vgl) {
+      vgl.addEventListener('input', e => { const t = e.target; if (t.dataset.vgn) vg[t.dataset.vgn].name = t.value; });
+      vgl.addEventListener('change', e => { const t = e.target; if (t.dataset.vgs) vg[t.dataset.vgs].size = t.value; });
+      vgl.addEventListener('click', e => {
+        const rm = e.target.closest('[data-vgrm]');
+        if (rm) { vg.splice(Number(rm.dataset.vgrm), 1); vgl.innerHTML = guestRows(); return; }
+        if (e.target.closest('#vgAdd')) { vg.push({ name: '', size: '' }); vgl.innerHTML = guestRows(); const ins = vgl.querySelectorAll('[data-vgn]'); ins[ins.length - 1].focus(); }
+      });
+    }
     f.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', async () => {
-      if (!window.confirm('Cancel this shift?')) return;
+      if (!window.confirm('Cancel this shift? Any guests you added are canceled with you.')) return;
       try { await api('DELETE', '/signups/' + b.dataset.cancel); toast('Shift canceled.'); vOpp(id); } catch (err) { toast(err.message); }
     }));
     f.querySelectorAll('[data-leave]').forEach(b => b.addEventListener('click', async () => {
@@ -264,7 +283,7 @@
     const tot = hours.filter(h => h.status === 'approved').reduce((a, h) => a + h.minutes, 0);
     main.innerHTML = `<h1>My activity</h1>
       <div class="panel"><h2>Coming up</h2>${upcoming.length ? `<div class="list">${upcoming.map(u => `<div class="row"><div class="cal"><div class="m">${fmtDate(u.date, { month: 'short' })}</div><div class="d">${d8(u.date).getDate()}</div></div>
-        <div class="grow"><div class="eyebrow">${esc(u.nonprofit || 'Community National Bank')}</div><h3><a href="#/opp/${u.opp_id}">${esc(u.title)}</a></h3><small class="muted">${fmtDate(u.date)}, ${fmtT(u.start)} – ${fmtT(u.end)} · ${esc(u.location)}${u.shirt_size ? ' · Shirt ' + esc(u.shirt_size) : ''}</small>${u.from_waitlist ? '<br><span class="pill ok">You\'re in! Moved up from the waitlist</span>' : ''}</div>
+        <div class="grow"><div class="eyebrow">${esc(u.nonprofit || 'Community National Bank')}</div><h3><a href="#/opp/${u.opp_id}">${esc(u.title)}</a></h3><small class="muted">${fmtDate(u.date)}, ${fmtT(u.start)} – ${fmtT(u.end)} · ${esc(u.location)}${u.shirt_size ? ' · Shirt ' + esc(u.shirt_size) : ''}${u.guests && u.guests.length ? ' · With ' + u.guests.map(g => esc(g.name)).join(', ') : ''}</small>${u.from_waitlist ? '<br><span class="pill ok">You\'re in! Moved up from the waitlist</span>' : ''}</div>
         <button class="btn sm ghost" data-cancel="${u.signup_id}">Cancel</button></div>`).join('')}</div>` : '<p class="muted">Nothing on your calendar. <a href="#/volunteer">Find a way to help</a>.</p>'}</div>
       ${waiting.length ? `<div class="panel"><h2>Waitlist</h2><p class="muted" style="margin:0">First come, first served. If a spot opens, you move up automatically.</p><div class="list">${waiting.map(w => `<div class="row"><div class="cal"><div class="m">${fmtDate(w.date, { month: 'short' })}</div><div class="d">${d8(w.date).getDate()}</div></div>
         <div class="grow"><h3><a href="#/opp/${w.opp_id}">${esc(w.title)}</a></h3><small class="muted">${fmtDate(w.date)}, ${fmtT(w.start)} – ${fmtT(w.end)} · ${esc(w.location)}</small><br><span class="pill warn">#${w.place} in line</span></div>
@@ -511,6 +530,7 @@
         <div class="field span"><label for="od">Description</label><textarea class="input" id="od" name="description" maxlength="4000">${esc(o.description || '')}</textarea></div>
       </div>
       <label class="toggle"><input type="checkbox" name="collect_shirts" ${o.collect_shirts ? 'checked' : ''}><span class="sw"></span><small>Ask for shirt sizes</small></label>
+      <div class="field" style="max-width:320px"><label for="omg">Guests per employee</label><select class="input" id="omg" name="max_guests">${[0, 1, 2, 3, 4, 5, 6, 8, 10].map(n => `<option value="${n}" ${(o.max_guests ?? 4) === n ? 'selected' : ''}>${n ? 'Up to ' + n : 'Employees only'}</option>`).join('')}</select><small>Family or friends an employee can add by name when they sign up. Each guest takes a spot.</small></div>
       <fieldset class="craq" id="craf"><legend>CRA questions</legend>
         <label class="toggle"><input type="checkbox" name="cra_lmi" ${o.cra_lmi ? 'checked' : ''}><span class="sw"></span><small>Does it mainly serve low- to moderate-income people or neighborhoods?</small></label>
         <label class="toggle"><input type="checkbox" name="cra_finance" ${o.cra_finance ? 'checked' : ''}><span class="sw"></span><small>Does it use financial knowledge (financial education, budgeting, homebuying, small business, a finance role)?</small></label>
@@ -544,7 +564,7 @@
         capacity: Number(r.querySelector('[name=scap]').value), label: r.querySelector('[name=slabel]').value
       }));
       const body = { otype: f.otype.value, market_id: Number(mktLocked ? S.me.market_id : f.market_id.value), title: f.title.value, nonprofit: f.nonprofit.value,
-        location: f.location.value, address: f.address.value, description: f.description.value, collect_shirts: f.collect_shirts.checked,
+        location: f.location.value, address: f.address.value, description: f.description.value, collect_shirts: f.collect_shirts.checked, max_guests: Number(f.max_guests.value),
         cra_lmi: f.cra_lmi.checked, cra_finance: f.cra_finance.checked, cra_note: f.cra_note.value, status: f.status.value, shifts };
       try {
         await api(isNew ? 'POST' : 'PUT', isNew ? '/admin/opps' : '/admin/opps/' + id, body);
@@ -560,9 +580,9 @@
     main.innerHTML = `<a class="back" href="#/admin/opps">${I.left}Opportunities</a>
       <div class="btnrow" style="justify-content:space-between"><h1>${esc(opp.title)}: sign-ups</h1><button class="btn ghost" id="csv">Export CSV</button></div>
       ${Object.values(byShift).map(({ s, people }) => `<div class="panel"><h2>${fmtDate(s.date)}, ${fmtT(s.start)} – ${fmtT(s.end)} ${s.label ? '· ' + esc(s.label) : ''}</h2>
-        <p class="muted" style="margin:0">${people.length} of ${s.capacity} spots filled</p>
-        ${people.length ? `<div class="tablewrap"><table class="stbl tight"><thead><tr><th>Name</th><th>Branch</th><th>Shirt</th></tr></thead><tbody>${people.map(p => `<tr><td>${esc(p.first_name + ' ' + p.last_name)}</td><td>${esc(p.branch || '')}</td><td>${esc(p.shirt_size || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
-        ${(w => w.length ? `<p style="margin:0"><b>Waitlist</b> <small class="muted">(moves up automatically, in this order)</small><br>${w.map((x, i) => `${i + 1}. ${esc(x.first_name + ' ' + x.last_name)}`).join('<br>')}</p>` : '')(waiting.filter(x => x.shift_id === s.shift_id))}</div>`).join('')}`;
+        <p class="muted" style="margin:0">${people.reduce((a, p) => a + 1 + (p.guests || []).length, 0)} of ${s.capacity} spots filled${people.some(p => (p.guests || []).length) ? ` · ${people.length} employee${people.length === 1 ? '' : 's'}, ${people.reduce((a, p) => a + (p.guests || []).length, 0)} guest${people.reduce((a, p) => a + (p.guests || []).length, 0) === 1 ? '' : 's'}` : ''}</p>
+        ${people.length ? `<div class="tablewrap"><table class="stbl tight"><thead><tr><th>Name</th><th>Branch</th><th>Shirt</th></tr></thead><tbody>${people.map(p => `<tr><td>${esc(p.first_name + ' ' + p.last_name)}</td><td>${esc(p.branch || '')}</td><td>${esc(p.shirt_size || '')}</td></tr>${(p.guests || []).map(g => `<tr class="guestrow"><td>${esc(g.name)} <span class="pill">Guest of ${esc(p.first_name)}</span></td><td></td><td>${esc(g.size || '')}</td></tr>`).join('')}`).join('')}</tbody></table></div>` : ''}
+        ${(w => w.length ? `<p style="margin:0"><b>Waitlist</b> <small class="muted">(moves up automatically, in this order)</small><br>${w.map((x, i) => `${i + 1}. ${esc(x.first_name + ' ' + x.last_name)}${x.guests ? ` +${x.guests} guest${x.guests > 1 ? 's' : ''}` : ''}`).join('<br>')}</p>` : '')(waiting.filter(x => x.shift_id === s.shift_id))}</div>`).join('')}`;
     $('#csv').addEventListener('click', () => download(`/admin/opps/${id}/roster?format=csv`, `roster-${id}.csv`));
   }
 
@@ -883,7 +903,7 @@
     if (vBuilder.jump && window.innerWidth < 760) setTimeout(() => out.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     vBuilder.jump = false;
     if (guests) {
-      out.innerHTML = `<h2>Friends and family</h2><p class="muted" style="margin:0">${esc(when)}${filt.length ? ' · ' + esc(filt.join(' · ')) : ''}. Guests are people without an @cnbtx.com email, credited to the employee on the same team for that shift.</p>
+      out.innerHTML = `<h2>Friends and family</h2><p class="muted" style="margin:0">${esc(when)}${filt.length ? ' · ' + esc(filt.join(' · ')) : ''}. Guests are family and friends an employee brought (named at sign-up or added at the kiosk), plus Galaxy history: people without an @cnbtx.com email, credited to the employee on the same team for that shift.</p>
         <div class="kpis"><div class="kpi"><b>${r.total.guests}</b><span>Guests</span></div><div class="kpi"><b>${r.total.signups}</b><span>Guest sign-ups</span></div><div class="kpi"><b>${n1(r.total.hours)}</b><span>Guest volunteer hours</span></div><div class="kpi"><b>${r.total.hosts}</b><span>Employees who brought guests</span></div></div>
         <div class="tablewrap"><table class="stbl tight"><thead><tr><th class="num">#</th><th>Employee who brought them</th><th>Branch</th><th class="num">Guests</th><th class="num">Guest sign-ups</th><th class="num">Guest hours</th></tr></thead><tbody>
         ${r.rows.length ? r.rows.map(x => `<tr><td class="num">${x.rank ?? ''}</td><td>${esc(x.group)}</td><td>${esc(x.branch || '')}</td><td class="num">${x.guests}</td><td class="num">${x.signups}</td><td class="num">${n1(x.hours)}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">No guests in this period.</td></tr>'}</tbody></table></div>`;
