@@ -24,6 +24,14 @@
   "source": "03/Off the Clock"
  },
  {
+  "key": "04-clay-shoot",
+  "ev": "Clay Shoot",
+  "date": "2026-04-24",
+  "market": "Permian Basin",
+  "count": 3,
+  "source": "04/Clay shoot (no Final folder)"
+ },
+ {
   "key": "04-keep-midland-beautiful",
   "ev": "Keep Midland Beautiful",
   "date": "2026-04-11",
@@ -96,6 +104,14 @@
   "source": "05/Off the Clock - Loteria y Cantaritos"
  },
  {
+  "key": "05-off-the-clock-may",
+  "ev": "Off the Clock: May",
+  "date": "2026-05-28",
+  "market": "Permian Basin",
+  "count": 10,
+  "source": "05/Off the clock may (no Final folder)"
+ },
+ {
   "key": "05-senior-life-garage-sale",
   "ev": "Senior Life Garage Sale",
   "date": "2026-05-02",
@@ -112,6 +128,14 @@
   "source": "05/Summer Mummers Build"
  },
  {
+  "key": "06-beyond-the-bank",
+  "ev": "Beyond the Bank: June filming",
+  "date": "2026-06-24",
+  "market": "Permian Basin",
+  "count": 6,
+  "source": "06/beyond the bank (no Final folder)"
+ },
+ {
   "key": "06-cattle-baron-ball",
   "ev": "Cattle Baron Ball",
   "date": "2026-06-27",
@@ -126,6 +150,14 @@
   "market": "Permian Basin",
   "count": 17,
   "source": "06/Culture Night"
+ },
+ {
+  "key": "06-culture-night-at-rockhounds",
+  "ev": "Culture Night at the RockHounds",
+  "date": "2026-06-26",
+  "market": "Permian Basin",
+  "count": 11,
+  "source": "06/Culture Night at Rockhounds (no Final folder)"
  },
  {
   "key": "06-family-night-rockhounds",
@@ -160,6 +192,14 @@
   "source": "06/Senior Life Organizing"
  },
  {
+  "key": "06-soccer-night",
+  "ev": "Soccer Night",
+  "date": "2026-06-26",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "06/Soccer Night (no Final folder)"
+ },
+ {
   "key": "06-spectrum-of-solutions-potato-sale",
   "ev": "Spectrum of Solutions Potato Sale",
   "date": "2026-06-11",
@@ -190,6 +230,14 @@
   "market": "Permian Basin",
   "count": 37,
   "source": "07/Banana Ball "
+ },
+ {
+  "key": "07-beyond-the-bank",
+  "ev": "Beyond the Bank: July filming",
+  "date": "2026-07-30",
+  "market": "Permian Basin",
+  "count": 1,
+  "source": "07/Beyond the Bank (no Final folder)"
  },
  {
   "key": "07-casa-de-amigos-mobile-food-pantry",
@@ -224,6 +272,14 @@
   "source": "07/Harmony Home - Backpack Fill"
  },
  {
+  "key": "07-patriotic-day",
+  "ev": "Patriotic Day",
+  "date": "2026-07-01",
+  "market": "Permian Basin",
+  "count": 1,
+  "source": "07/Patriotic Day (no Final folder)"
+ },
+ {
   "key": "07-senior-life-summer-garage-sale",
   "ev": "Senior Life Summer Garage Sale",
   "date": "2026-07-24",
@@ -248,12 +304,28 @@
   "source": "07/Stanton 100th Parade"
  },
  {
+  "key": "07-star-spangle-salute",
+  "ev": "Star Spangle Salute",
+  "date": "2026-07-04",
+  "market": "Permian Basin",
+  "count": 3,
+  "source": "07/Star Spangle Salute (no Final folder)"
+ },
+ {
   "key": "07-summer-mummers",
   "ev": "Summer Mummers",
   "date": "2026-07-24",
   "market": "Permian Basin",
   "count": 21,
   "source": "07/Summer Mummers"
+ },
+ {
+  "key": "07-tracy-lawrence",
+  "ev": "Tracy Lawrence",
+  "date": "2026-07-10",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "07/Tracy Lawrence (no Final folder)"
  },
  {
   "key": "08-basin-pbs-school-supplies",
@@ -352,12 +424,36 @@
   "source": "10/Casa de Amigos Financial Literacy"
  },
  {
+  "key": "10-love-midland",
+  "ev": "Love Midland",
+  "date": "2026-10-26",
+  "market": "Permian Basin",
+  "count": 7,
+  "source": "10/Love Midland (no Final folder)"
+ },
+ {
   "key": "10-national-chamber-day",
   "ev": "National Chamber Day",
   "date": "2026-10-21",
   "market": "Permian Basin",
   "count": 4,
   "source": "10/National Chamber Day"
+ },
+ {
+  "key": "10-national-first-responders",
+  "ev": "National First Responders",
+  "date": "2026-10-29",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "10/National First Responders (no Final folder)"
+ },
+ {
+  "key": "10-odessa-hispanic-chamber-of-commerce-gala",
+  "ev": "Odessa Hispanic Chamber of Commerce Gala",
+  "date": "2026-10-26",
+  "market": "Permian Basin",
+  "count": 5,
+  "source": "10/Odessa Hispanic Chamber of Commerce Gala (no Final folder)"
  },
  {
   "key": "10-souperbowl",
@@ -376,14 +472,6 @@
   "source": "10/Special Olympics"
  },
  {
-  "key": "10-tx-size-garage",
-  "ev": "TX Size Garage Sale",
-  "date": "2026-10-02",
-  "market": "Permian Basin",
-  "count": 44,
-  "source": "10/TX Size Garage"
- },
- {
   "key": "10-texas-tech-football",
   "ev": "Texas Tech Football",
   "date": "2026-10-17",
@@ -400,12 +488,28 @@
   "source": "10/Trunk or Treat"
  },
  {
+  "key": "10-tx-size-garage",
+  "ev": "TX Size Garage Sale",
+  "date": "2026-10-02",
+  "market": "Permian Basin",
+  "count": 44,
+  "source": "10/TX Size Garage"
+ },
+ {
   "key": "11-casa-de-amgios",
   "ev": "Casa de Amigos",
   "date": "2026-11-06",
   "market": "Permian Basin",
   "count": 8,
   "source": "11/Casa de Amgios "
+ },
+ {
+  "key": "11-midland-memorial-popcorn",
+  "ev": "Midland Memorial Popcorn",
+  "date": "2026-11-12",
+  "market": "Permian Basin",
+  "count": 16,
+  "source": "11/Midland Memorial Popcorn (no Final folder)"
  },
  {
   "key": "11-off-the-clock-q4",
