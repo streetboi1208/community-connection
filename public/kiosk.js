@@ -23,7 +23,7 @@
     main.innerHTML = `<div class="panel"><div class="eyebrow">${esc(st.nonprofit || 'Community National Bank')}</div><h1>${esc(st.title)}</h1>
         <p class="muted" style="margin:0">${esc(st.location)} · ${st.checkedIn.length} here now · ${st.checkedOutToday} checked out today${st.otype === 'social' ? ' · attendance only' : ''}</p></div>
       <div class="panel"><h2>Check in</h2><input class="input kbig" id="q" placeholder="Type your name" autocomplete="off" autocapitalize="words">
-        <div class="field"><label for="g">Guests with you</label><select class="input" id="g">${[0, 1, 2, 3, 4, 5].map(n => `<option>${n}</option>`).join('')}</select></div>
+        <div class="field"><label for="g">Guests with you</label><select class="input" id="g">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option>${n}</option>`).join('')}</select></div>
         <div class="kres" id="res">${results || ''}</div>
         ${lastIn ? `<div class="note ok">${esc(lastIn.name)} is checked in. <button class="btn sm ghost" id="undo">Undo</button></div>` : ''}</div>
       <div class="panel"><h2>Here now</h2>${st.checkedIn.length ? `<div class="kres">${st.checkedIn.map(c => `<button class="btn ghost kbig" data-out="${c.id}" data-n="${esc(c.name)}"><span>${esc(c.name)}${c.guests ? ` +${c.guests}` : ''}</span><small class="muted">in at ${since(c.since)} · tap to check out</small></button>`).join('')}</div>` : '<p class="muted" style="margin:0">Nobody checked in yet.</p>'}</div>
@@ -48,10 +48,12 @@
     if (text.trim().length < 2) { res.innerHTML = ''; return; }
     try {
       const { rows } = await api('GET', '/search?q=' + encodeURIComponent(text));
-      res.innerHTML = rows.length ? rows.map(r => `<button class="btn ${r.checkedIn ? 'ghost' : 'red'} kbig" data-in="${r.id}" data-n="${esc(r.name)}" ${r.checkedIn ? 'disabled' : ''}><span>${esc(r.name)}</span><small>${esc(r.branch || '')}${r.signedUp ? ' · signed up' : ' · walk-in'}${r.checkedIn ? ' · already here' : ''}</small></button>`).join('') : '<p class="muted" style="margin:0">No match. Check the spelling or ask a committee member.</p>';
+      res.innerHTML = rows.length ? rows.map(r => `<button class="btn ${r.checkedIn ? 'ghost' : 'red'} kbig" data-in="${r.id}" data-n="${esc(r.name)}" ${r.checkedIn ? 'disabled' : ''}><span>${esc(r.name)}</span><small>${esc(r.branch || '')}${r.signedUp ? ' · signed up' + (r.guests ? ` with ${r.guests} guest${r.guests > 1 ? 's' : ''}` : '') : ' · walk-in'}${r.checkedIn ? ' · already here' : ''}</small></button>`).join('') : '<p class="muted" style="margin:0">No match. Check the spelling or ask a committee member.</p>';
       res.querySelectorAll('[data-in]').forEach(b => b.addEventListener('click', async () => {
         try {
-          await api('POST', '/checkin', { employee_id: Number(b.dataset.in), guests: Number(document.getElementById('g').value) });
+          const gsel = document.getElementById('g'); const r0 = rows.find(x => x.id === Number(b.dataset.in));
+          const guests = Number(gsel.value) || (r0 && r0.guests) || 0;
+          await api('POST', '/checkin', { employee_id: Number(b.dataset.in), guests });
           lastIn = { id: Number(b.dataset.in), name: b.dataset.n }; toast(`Welcome, ${b.dataset.n}!`); load();
         } catch (e) { toast(e.message); }
       }));

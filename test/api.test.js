@@ -49,7 +49,7 @@ async function emp(username, roles, market, { mustChange = false, empNo } = {}) 
 
 test.before(async () => {
   await migrate();
-  await q('TRUNCATE board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  await q('TRUNCATE guest_hours, board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
   M = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   ids.admin = await emp('ana.admin', ['admin'], 'Permian Basin');
   ids.emp = await emp('eli.emp', [], 'Permian Basin');
@@ -219,6 +219,8 @@ test('kiosk: committee opens it, people check in and out, hours are logged', asy
   assert.ok(Math.abs(out.data.minutes - 90) <= 1);
   const h = await one(`SELECT status, guests, source FROM hours WHERE employee_id=$1 AND source='kiosk'`, [ids.emp2]);
   assert.deepEqual(h, { status: 'approved', guests: 1, source: 'kiosk' });
+  const gh = await one('SELECT host_ids, minutes FROM guest_hours WHERE import_key IS NULL');
+  assert.deepEqual(gh.host_ids, [ids.emp2], 'kiosk guests count as friends and family for their host');
   assert.equal((await kc.req('POST', '/api/kiosk/close', {}, H)).status, 200);
   assert.equal((await kc.get('/api/kiosk/state', H)).status, 401, 'closed kiosk stops working');
   // Employees cannot open kiosks
@@ -354,6 +356,36 @@ test('waitlist moves people up first come, first served', async () => {
   assert.equal((await cc.get('/api/activity')).data.waiting.length, 1);
   const ro = await a.get(`/api/admin/opps/${o.data.id}/roster`);
   assert.deepEqual(ro.data.waiting.map(w => w.first_name), ['cc']);
+});
+
+test('employees can bring named guests; each guest takes a spot', async () => {
+  const a = await new Client().login('ana.admin');
+  const o = await a.post('/api/admin/opps', { otype: 'community', market_id: M['Permian Basin'], title: 'Park cleanup', nonprofit: 'Parks', location: 'Park',
+    collect_shirts: true, max_guests: 2, shifts: [{ date: addDays(4), start: '09:00', end: '11:00', capacity: 3 }] });
+  assert.equal(o.status, 200);
+  const gsid = (await one('SELECT id FROM shifts WHERE opp_id=$1', [o.data.id])).id;
+  const eli = await new Client().login('eli.emp'), eva = await new Client().login('eva.emp');
+  const su = guests => eli.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [gsid], shirt_size: 'M', guests });
+  assert.equal((await su([{ name: 'Ann', size: 'S' }])).status, 400, 'guests need first and last name');
+  assert.equal((await su([{ name: 'Ann Lee' }])).status, 400, 'guests need a shirt size when shirts are collected');
+  assert.equal((await su([{ name: 'Ann Lee', size: 'S' }, { name: 'Bo Lee', size: 'L' }, { name: 'Cy Lee', size: 'L' }])).status, 400, 'over the guest limit');
+  assert.deepEqual((await su([{ name: 'Ann Lee', size: 'S' }, { name: 'Bo Lee', size: 'L' }])).data.added, [gsid]);
+  const d = await eva.get(`/api/opps/${o.data.id}`);
+  assert.equal(d.data.shifts[0].filled, 3, 'Eli plus 2 guests fill the shift');
+  assert.equal(d.data.opp.max_guests, 2);
+  assert.deepEqual((await eva.post(`/api/opps/${o.data.id}/signup`, { shiftIds: [gsid], shirt_size: 'M' })).data.waitlisted, [gsid]);
+  const ro = await a.get(`/api/admin/opps/${o.data.id}/roster`);
+  assert.deepEqual(ro.data.rows.find(r => r.employee_id === ids.emp).guests.map(g => g.name), ['Ann Lee', 'Bo Lee']);
+  const csv = await a.get(`/api/admin/opps/${o.data.id}/roster?format=csv`);
+  assert.match(csv.data, /Bo,Lee,,L,eli/);
+  // Capacity can't drop below employees plus guests
+  const cut = await a.req('PUT', `/api/admin/opps/${o.data.id}`, { otype: 'community', market_id: M['Permian Basin'], title: 'Park cleanup', nonprofit: 'Parks', location: 'Park',
+    collect_shirts: true, max_guests: 2, shifts: [{ id: gsid, date: addDays(4), start: '09:00', end: '11:00', capacity: 2 }] });
+  assert.equal(cut.status, 409);
+  // Eli cancels: the spots free up and Eva moves up from the waitlist
+  const sid = (await one('SELECT id FROM signups WHERE shift_id=$1 AND employee_id=$2', [gsid, ids.emp])).id;
+  assert.equal((await eli.req('DELETE', `/api/signups/${sid}`)).status, 200);
+  assert.ok(await one('SELECT 1 FROM signups WHERE shift_id=$1 AND employee_id=$2', [gsid, ids.emp2]));
 });
 
 test('CRA questions on events and logged hours feed the CRA export', async () => {

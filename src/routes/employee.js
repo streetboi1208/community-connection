@@ -4,7 +4,7 @@ const { q, one, many, tx, audit, setting } = require('../db');
 const A = require('../auth');
 const { Bad, str, int, bool, isoDate, oneOf, today } = require('../util');
 
-const { promoteWaitlist } = require('../waitlist');
+const { promoteWaitlist, SPOTS } = require('../waitlist');
 const r = express.Router();
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
 
@@ -169,12 +169,12 @@ r.get('/home', async (req, res) => {
 // ---------- opportunities ----------
 async function oppRows(where, params, userId) {
   return many(
-    `SELECT o.id, o.otype, o.title, o.location, o.address, o.description, o.collect_shirts, o.cra, o.cra_lmi, o.cra_finance, o.market_id, m.name AS market,
+    `SELECT o.id, o.otype, o.title, o.location, o.address, o.description, o.collect_shirts, o.max_guests, o.cra, o.cra_lmi, o.cra_finance, o.market_id, m.name AS market,
             n.name AS nonprofit,
             (SELECT min(date) FROM shifts WHERE opp_id=o.id) AS first_date,
             (SELECT max(date) FROM shifts WHERE opp_id=o.id) AS last_date,
             (SELECT COALESCE(sum(capacity),0)::int FROM shifts WHERE opp_id=o.id AND date >= $${params.length + 1}::date) AS cap,
-            (SELECT count(*)::int FROM signups su JOIN shifts s ON s.id=su.shift_id WHERE s.opp_id=o.id AND s.date >= $${params.length + 1}::date) AS filled,
+            (SELECT ${SPOTS} FROM signups su JOIN shifts s ON s.id=su.shift_id WHERE s.opp_id=o.id AND s.date >= $${params.length + 1}::date) AS filled,
             EXISTS (SELECT 1 FROM signups su JOIN shifts s ON s.id=su.shift_id WHERE s.opp_id=o.id AND su.employee_id=$${params.length + 2} AND s.date >= $${params.length + 1}::date) AS mine
        FROM opportunities o JOIN markets m ON m.id=o.market_id LEFT JOIN nonprofits n ON n.id=o.nonprofit_id
       WHERE ${where}
@@ -196,8 +196,9 @@ r.get('/opps/:id', async (req, res) => {
   if (!o) throw new Bad('That opportunity was not found.', 404);
   const shifts = await many(
     `SELECT s.id, s.label, s.date, to_char(s.start_time,'HH24:MI') AS start, to_char(s.end_time,'HH24:MI') AS "end", s.capacity,
-            (SELECT count(*)::int FROM signups WHERE shift_id=s.id) AS filled,
+            (SELECT ${SPOTS} FROM signups WHERE shift_id=s.id) AS filled,
             (SELECT id FROM signups WHERE shift_id=s.id AND employee_id=$2) AS my_signup,
+            (SELECT guests FROM signups WHERE shift_id=s.id AND employee_id=$2) AS my_guests,
             (SELECT count(*)::int FROM waitlist WHERE shift_id=s.id) AS waiting,
             (SELECT id FROM waitlist WHERE shift_id=s.id AND employee_id=$2) AS my_wait,
             (SELECT count(*)::int FROM waitlist w2 WHERE w2.shift_id=s.id AND w2.created_at <= (SELECT created_at FROM waitlist WHERE shift_id=s.id AND employee_id=$2)) AS my_place
@@ -214,13 +215,24 @@ r.post('/opps/:id/signup', async (req, res) => {
   const oppId = int(req.params.id, 'id', { min: 1 });
   const ids = Array.isArray(req.body?.shiftIds) ? req.body.shiftIds.map(x => int(x, 'Shift', { min: 1 })) : [];
   if (!ids.length) throw new Bad('Pick at least one shift.');
-  const o = await one(`SELECT id, collect_shirts, status FROM opportunities WHERE id=$1`, [oppId]);
+  const o = await one(`SELECT id, collect_shirts, max_guests, status FROM opportunities WHERE id=$1`, [oppId]);
   if (!o || o.status !== 'published') throw new Bad('That opportunity is not open.', 404);
   let size = null;
   if (o.collect_shirts) {
     size = req.body?.shirt_size ? oneOf(req.body.shirt_size, 'Shirt size', SIZES) : null;
     if (!size) throw new Bad('Pick a shirt size.');
   }
+  // Guests: family or friends (not employees), by full name. Each takes a spot on every shift picked.
+  const rawGuests = Array.isArray(req.body?.guests) ? req.body.guests : [];
+  if (rawGuests.length > o.max_guests) throw new Bad(o.max_guests ? `You can bring up to ${o.max_guests} guest${o.max_guests > 1 ? 's' : ''} to this one.` : "This one is for employees only, so guests can't come.");
+  const guests = rawGuests.map((g, i) => {
+    const name = String(g?.name ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
+    if (!/\S+ \S+/.test(name)) throw new Bad(`Add guest ${i + 1}'s first and last name.`);
+    const gs = o.collect_shirts && g?.size ? oneOf(g.size, 'Shirt size', SIZES) : null;
+    if (o.collect_shirts && !gs) throw new Bad(`Pick a shirt size for ${name}.`);
+    return gs ? { name, size: gs } : { name };
+  });
+  const party = 1 + guests.length;
   const waited = [];
   const added = await tx(async c => {
     const out = [];
@@ -228,23 +240,23 @@ r.post('/opps/:id/signup', async (req, res) => {
       const s = (await c.query(`SELECT id, capacity, date FROM shifts WHERE id=$1 AND opp_id=$2 FOR UPDATE`, [sid, oppId])).rows[0];
       if (!s) throw new Bad('A shift was not found.');
       if (s.date < today()) throw new Bad('That shift already happened.');
-      const n = (await c.query('SELECT count(*)::int AS n FROM signups WHERE shift_id=$1', [sid])).rows[0].n;
+      const n = (await c.query(`SELECT ${SPOTS} AS n FROM signups WHERE shift_id=$1`, [sid])).rows[0].n;
       const dup = (await c.query('SELECT 1 FROM signups WHERE shift_id=$1 AND employee_id=$2', [sid, req.user.id])).rows[0];
       if (dup) continue;
-      if (n >= s.capacity) {
+      if (n + party > s.capacity) {
         // Full: join the waitlist in sign-up order (first come, first served).
-        await c.query('INSERT INTO waitlist (shift_id, employee_id, shirt_size) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [sid, req.user.id, size]);
+        await c.query('INSERT INTO waitlist (shift_id, employee_id, shirt_size, guests) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [sid, req.user.id, size, JSON.stringify(guests)]);
         waited.push(sid);
         continue;
       }
-      await c.query('INSERT INTO signups (shift_id, employee_id, shirt_size) VALUES ($1,$2,$3)', [sid, req.user.id, size]);
+      await c.query('INSERT INTO signups (shift_id, employee_id, shirt_size, guests) VALUES ($1,$2,$3,$4)', [sid, req.user.id, size, JSON.stringify(guests)]);
       await c.query('DELETE FROM waitlist WHERE shift_id=$1 AND employee_id=$2', [sid, req.user.id]);
       out.push(sid);
     }
     return out;
   });
   if (size) await q('UPDATE employees SET shirt_size=COALESCE(shirt_size,$2) WHERE id=$1', [req.user.id, size]);
-  await audit(req.user.id, 'signup.add', `opp:${oppId}`, { shifts: added, waitlisted: waited });
+  await audit(req.user.id, 'signup.add', `opp:${oppId}`, { shifts: added, waitlisted: waited, guests: guests.length });
   res.json({ ok: true, added, waitlisted: waited });
 });
 
@@ -274,7 +286,7 @@ r.delete('/waitlist/:id', async (req, res) => {
 r.get('/activity', async (req, res) => {
   const upcoming = await many(
     `SELECT su.id AS signup_id, o.id AS opp_id, o.title, o.location, n.name AS nonprofit, s.date,
-            to_char(s.start_time,'HH24:MI') AS start, to_char(s.end_time,'HH24:MI') AS "end", s.label, su.shirt_size, su.from_waitlist
+            to_char(s.start_time,'HH24:MI') AS start, to_char(s.end_time,'HH24:MI') AS "end", s.label, su.shirt_size, su.from_waitlist, su.guests
        FROM signups su JOIN shifts s ON s.id=su.shift_id JOIN opportunities o ON o.id=s.opp_id LEFT JOIN nonprofits n ON n.id=o.nonprofit_id
       WHERE su.employee_id=$1 AND s.date >= $2::date ORDER BY s.date, s.start_time`, [req.user.id, today()]);
   const hours = await many(
