@@ -1,0 +1,442 @@
+[
+ {
+  "key": "03-banker-build",
+  "ev": "Banker Build",
+  "date": "2026-03-17",
+  "market": "Permian Basin",
+  "count": 42,
+  "source": "03/Banker Build"
+ },
+ {
+  "key": "03-boys-girls-club",
+  "ev": "Boys & Girls Club",
+  "date": "2026-03-20",
+  "market": "Permian Basin",
+  "count": 38,
+  "source": "03/Boys & Girls Club"
+ },
+ {
+  "key": "03-off-the-clock",
+  "ev": "Off the Clock",
+  "date": "2026-03-24",
+  "market": "Permian Basin",
+  "count": 65,
+  "source": "03/Off the Clock"
+ },
+ {
+  "key": "04-keep-midland-beautiful",
+  "ev": "Keep Midland Beautiful",
+  "date": "2026-04-11",
+  "market": "Permian Basin",
+  "count": 17,
+  "source": "04/Keep Midland Beautiful"
+ },
+ {
+  "key": "04-kickballpalooza",
+  "ev": "Kickballpalooza",
+  "date": "2026-04-30",
+  "market": "Permian Basin",
+  "count": 167,
+  "source": "04/Kickballpalooza"
+ },
+ {
+  "key": "04-mission-agape",
+  "ev": "Mission Agape",
+  "date": "2026-04-28",
+  "market": "Permian Basin",
+  "count": 11,
+  "source": "04/Mission Agape"
+ },
+ {
+  "key": "04-pickleball",
+  "ev": "Pickleball",
+  "date": "2026-04-18",
+  "market": "Permian Basin",
+  "count": 7,
+  "source": "04/Pickleball"
+ },
+ {
+  "key": "04-share-walk",
+  "ev": "SHARE Walk",
+  "date": "2026-04-25",
+  "market": "Permian Basin",
+  "count": 8,
+  "source": "04/SHARE WALK"
+ },
+ {
+  "key": "04-spectrum-of-solutions-garage-sale",
+  "ev": "Spectrum of Solutions Garage Sale",
+  "date": "2026-05-02",
+  "market": "Permian Basin",
+  "count": 8,
+  "source": "04/Spectrum of Solutions Garage Sale"
+ },
+ {
+  "key": "05-casa-de-amigos-mobile-food-pantry",
+  "ev": "Casa de Amigos Mobile Food Pantry",
+  "date": "2026-05-19",
+  "market": "Permian Basin",
+  "count": 28,
+  "source": "05/Casa de Amigos Mobile Food Pantry"
+ },
+ {
+  "key": "05-cinco-de-mayo-fiesta-florida",
+  "ev": "Cinco de Mayo Fiesta, Florida Branch",
+  "date": "2026-05-05",
+  "market": "Permian Basin",
+  "count": 10,
+  "source": "05/Cinco de Mayo Fiesta - Florida"
+ },
+ {
+  "key": "05-off-the-clock-loteria-y-cantaritos",
+  "ev": "Off the Clock: Lotería y Cantaritos",
+  "date": "2026-05-05",
+  "market": "Permian Basin",
+  "count": 87,
+  "source": "05/Off the Clock - Loteria y Cantaritos"
+ },
+ {
+  "key": "05-senior-life-garage-sale",
+  "ev": "Senior Life Garage Sale",
+  "date": "2026-05-02",
+  "market": "Permian Basin",
+  "count": 7,
+  "source": "05/Senior Life Garage Sale"
+ },
+ {
+  "key": "05-summer-mummers-build",
+  "ev": "Summer Mummers Build",
+  "date": "2026-05-01",
+  "market": "Permian Basin",
+  "count": 20,
+  "source": "05/Summer Mummers Build"
+ },
+ {
+  "key": "06-cattle-baron-ball",
+  "ev": "Cattle Baron Ball",
+  "date": "2026-06-27",
+  "market": "Permian Basin",
+  "count": 5,
+  "source": "06/Cattle Baron Ball"
+ },
+ {
+  "key": "06-culture-night",
+  "ev": "Culture Night",
+  "date": "2026-06-19",
+  "market": "Permian Basin",
+  "count": 17,
+  "source": "06/Culture Night"
+ },
+ {
+  "key": "06-family-night-rockhounds",
+  "ev": "Family Night at the RockHounds",
+  "date": "2026-06-11",
+  "market": "Permian Basin",
+  "count": 37,
+  "source": "06/Family Night RockHounds"
+ },
+ {
+  "key": "06-food-bank",
+  "ev": "Food Bank",
+  "date": "2026-06-12",
+  "market": "Permian Basin",
+  "count": 20,
+  "source": "06/Food Bank"
+ },
+ {
+  "key": "06-manor-park-fraud-training",
+  "ev": "Manor Park Fraud Training",
+  "date": "2026-06-16",
+  "market": "Permian Basin",
+  "count": 11,
+  "source": "06/Manor Park Fraud Training"
+ },
+ {
+  "key": "06-senior-life-organizing",
+  "ev": "Senior Life Organizing",
+  "date": "2026-06-05",
+  "market": "Permian Basin",
+  "count": 9,
+  "source": "06/Senior Life Organizing"
+ },
+ {
+  "key": "06-spectrum-of-solutions-potato-sale",
+  "ev": "Spectrum of Solutions Potato Sale",
+  "date": "2026-06-11",
+  "market": "Permian Basin",
+  "count": 5,
+  "source": "06/Spectrum of Solutions Potato Sale"
+ },
+ {
+  "key": "06-summer-mummers",
+  "ev": "Summer Mummers",
+  "date": "2026-06-26",
+  "market": "Permian Basin",
+  "count": 35,
+  "source": "06/Summer Mummers"
+ },
+ {
+  "key": "06-wonder-girls",
+  "ev": "Wonder Girls",
+  "date": "2026-06-25",
+  "market": "Permian Basin",
+  "count": 7,
+  "source": "06/Wonder Girls"
+ },
+ {
+  "key": "07-banana-ball",
+  "ev": "Banana Ball",
+  "date": "2026-07-03",
+  "market": "Permian Basin",
+  "count": 37,
+  "source": "07/Banana Ball "
+ },
+ {
+  "key": "07-casa-de-amigos-mobile-food-pantry",
+  "ev": "Casa de Amigos Mobile Food Pantry",
+  "date": "2026-07-21",
+  "market": "Permian Basin",
+  "count": 16,
+  "source": "07/Casa de Amigos Mobile Food Pantry"
+ },
+ {
+  "key": "07-food-bank",
+  "ev": "Food Bank",
+  "date": "2026-07-23",
+  "market": "Permian Basin",
+  "count": 49,
+  "source": "07/Food Bank "
+ },
+ {
+  "key": "07-happy-hour-manor-park",
+  "ev": "Happy Hour Manor Park",
+  "date": "2026-07-09",
+  "market": "Permian Basin",
+  "count": 21,
+  "source": "07/Happy Hour Manor Park"
+ },
+ {
+  "key": "07-harmony-home-backpack-fill",
+  "ev": "Harmony Home Backpack Fill",
+  "date": "2026-07-29",
+  "market": "Permian Basin",
+  "count": 13,
+  "source": "07/Harmony Home - Backpack Fill"
+ },
+ {
+  "key": "07-senior-life-summer-garage-sale",
+  "ev": "Senior Life Summer Garage Sale",
+  "date": "2026-07-24",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "07/Senior Life Summer Garage Sale"
+ },
+ {
+  "key": "07-senior-life-thank-you",
+  "ev": "Senior Life Thank You",
+  "date": "2026-07-28",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "07/Senior Life Thank You"
+ },
+ {
+  "key": "07-stanton-100th-parade",
+  "ev": "Stanton 100th Parade",
+  "date": "2026-07-11",
+  "market": "Permian Basin",
+  "count": 24,
+  "source": "07/Stanton 100th Parade"
+ },
+ {
+  "key": "07-summer-mummers",
+  "ev": "Summer Mummers",
+  "date": "2026-07-24",
+  "market": "Permian Basin",
+  "count": 21,
+  "source": "07/Summer Mummers"
+ },
+ {
+  "key": "08-basin-pbs-school-supplies",
+  "ev": "Basin PBS School Supplies",
+  "date": "2026-07-31",
+  "market": "Permian Basin",
+  "count": 15,
+  "source": "08/Basin PBS School Supplies"
+ },
+ {
+  "key": "08-dallas-family-night",
+  "ev": "Dallas Family Night",
+  "date": "2026-08-07",
+  "market": "DFW",
+  "count": 7,
+  "source": "08/Dallas Family Night"
+ },
+ {
+  "key": "08-midland-county-fair",
+  "ev": "Midland County Fair",
+  "date": "2026-08-22",
+  "market": "Permian Basin",
+  "count": 7,
+  "source": "08/Midland County Fair"
+ },
+ {
+  "key": "08-off-the-clock",
+  "ev": "Off the Clock",
+  "date": "2026-08-04",
+  "market": "Permian Basin",
+  "count": 88,
+  "source": "08/Off the Clock"
+ },
+ {
+  "key": "08-pickleball",
+  "ev": "Pickleball",
+  "date": "2026-08-27",
+  "market": "Permian Basin",
+  "count": 146,
+  "source": "08/Pickleball"
+ },
+ {
+  "key": "08-sling-sing",
+  "ev": "Sling & Sing",
+  "date": "2026-08-29",
+  "market": "Permian Basin",
+  "count": 45,
+  "source": "08/Sling & Sing"
+ },
+ {
+  "key": "08-summer-mummers",
+  "ev": "Summer Mummers",
+  "date": "2026-08-07",
+  "market": "Permian Basin",
+  "count": 22,
+  "source": "08/Summer Mummers"
+ },
+ {
+  "key": "09-officer-meeting",
+  "ev": "Officer Meeting",
+  "date": "2026-09-10",
+  "market": "Permian Basin",
+  "count": 51,
+  "source": "09/Officer Meeting"
+ },
+ {
+  "key": "09-teller-meeting",
+  "ev": "Teller Meeting",
+  "date": "2026-09-30",
+  "market": "Permian Basin",
+  "count": 5,
+  "source": "09/Teller Meeting"
+ },
+ {
+  "key": "10-alz-walk",
+  "ev": "ALZ Walk",
+  "date": "2026-10-17",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "10/ALZ Walk"
+ },
+ {
+  "key": "10-beacon-awards",
+  "ev": "Beacon Awards",
+  "date": "2026-10-01",
+  "market": "Permian Basin",
+  "count": 8,
+  "source": "10/Beacon Awards"
+ },
+ {
+  "key": "10-casa-de-amigos-financial-literacy",
+  "ev": "Casa de Amigos Financial Literacy",
+  "date": "2026-10-16",
+  "market": "Permian Basin",
+  "count": 14,
+  "source": "10/Casa de Amigos Financial Literacy"
+ },
+ {
+  "key": "10-national-chamber-day",
+  "ev": "National Chamber Day",
+  "date": "2026-10-21",
+  "market": "Permian Basin",
+  "count": 4,
+  "source": "10/National Chamber Day"
+ },
+ {
+  "key": "10-souperbowl",
+  "ev": "Souperbowl",
+  "date": "2026-10-29",
+  "market": "Permian Basin",
+  "count": 66,
+  "source": "10/Souperbowl"
+ },
+ {
+  "key": "10-special-olympics",
+  "ev": "Special Olympics",
+  "date": "2026-10-08",
+  "market": "Permian Basin",
+  "count": 17,
+  "source": "10/Special Olympics"
+ },
+ {
+  "key": "10-tx-size-garage",
+  "ev": "TX Size Garage Sale",
+  "date": "2026-10-02",
+  "market": "Permian Basin",
+  "count": 44,
+  "source": "10/TX Size Garage"
+ },
+ {
+  "key": "10-texas-tech-football",
+  "ev": "Texas Tech Football",
+  "date": "2026-10-17",
+  "market": "Permian Basin",
+  "count": 66,
+  "source": "10/Texas Tech Football "
+ },
+ {
+  "key": "10-trunk-or-treat",
+  "ev": "Trunk or Treat",
+  "date": "2026-10-22",
+  "market": "Permian Basin",
+  "count": 144,
+  "source": "10/Trunk or Treat"
+ },
+ {
+  "key": "11-casa-de-amgios",
+  "ev": "Casa de Amigos",
+  "date": "2026-11-06",
+  "market": "Permian Basin",
+  "count": 8,
+  "source": "11/Casa de Amgios "
+ },
+ {
+  "key": "11-off-the-clock-q4",
+  "ev": "Off the Clock Q4",
+  "date": "2026-11-04",
+  "market": "Permian Basin",
+  "count": 50,
+  "source": "11/Off the Clock Q4"
+ },
+ {
+  "key": "11-senior-life-thank-you",
+  "ev": "Senior Life Thank You",
+  "date": "2026-11-04",
+  "market": "Permian Basin",
+  "count": 3,
+  "source": "11/Senior life Thank You"
+ },
+ {
+  "key": "11-tailgate",
+  "ev": "Tailgate",
+  "date": "2026-11-07",
+  "market": "Permian Basin",
+  "count": 27,
+  "source": "11/Tailgate"
+ },
+ {
+  "key": "11-united-way-sharing-food-drive",
+  "ev": "United Way Sharing Food Drive",
+  "date": "2026-11-12",
+  "market": "Permian Basin",
+  "count": 39,
+  "source": "11/United Way Sharing Food Drive"
+ }
+]
