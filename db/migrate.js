@@ -78,6 +78,16 @@ async function migrate() {
   await pool.query(`ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS max_guests int NOT NULL DEFAULT 4`);
   await pool.query(`ALTER TABLE signups ADD COLUMN IF NOT EXISTS guests jsonb NOT NULL DEFAULT '[]'`);
   await pool.query(`ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS guests jsonb NOT NULL DEFAULT '[]'`);
+  // App usage: one row per page visit, with the seconds the page was on screen.
+  await pool.query(`CREATE TABLE IF NOT EXISTS page_views (
+    id bigserial PRIMARY KEY,
+    employee_id int NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    vid text NOT NULL,
+    page text NOT NULL,
+    seconds int NOT NULL DEFAULT 0,
+    viewed_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (employee_id, vid))`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS page_views_at ON page_views (viewed_at)`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('profile_check_months', '12') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO markets (name) VALUES ('Permian Basin'),('Lubbock'),('Dallas') ON CONFLICT DO NOTHING`);
   await pool.query(`INSERT INTO settings (key, value) VALUES ('impact_rate', '34.99') ON CONFLICT DO NOTHING`);

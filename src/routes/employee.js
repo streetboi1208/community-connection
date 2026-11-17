@@ -63,6 +63,20 @@ r.post('/me/password', async (req, res) => {
 
 r.use(A.requireUser);
 
+// App usage. The page sends each visit when it opens and again when it closes, with the seconds it was on screen.
+r.post('/track', async (req, res) => {
+  const list = Array.isArray(req.body?.views) ? req.body.views.slice(0, 20) : [];
+  for (const v of list) {
+    const vid = String(v?.id || '');
+    const page = String(v?.page || '').trim();
+    if (!/^[A-Za-z0-9-]{8,40}$/.test(vid) || !/^[\p{L}\p{N} &:'(),./-]{1,60}$/u.test(page)) continue;
+    const secs = Math.max(0, Math.min(1800, Math.round(Number(v.seconds) || 0)));
+    await q(`INSERT INTO page_views (employee_id, vid, page, seconds) VALUES ($1,$2,$3,$4)
+             ON CONFLICT (employee_id, vid) DO UPDATE SET seconds=GREATEST(page_views.seconds, EXCLUDED.seconds)`, [req.user.id, vid, page, secs]);
+  }
+  res.json({ ok: true });
+});
+
 r.patch('/me', async (req, res) => {
   const b = req.body || {};
   const cur = await one('SELECT phone, text_consent_at FROM employees WHERE id=$1', [req.user.id]);
