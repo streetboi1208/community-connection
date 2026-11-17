@@ -74,3 +74,12 @@ body{margin:0}
 }
 .resume .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:700px){.resume .kpis{grid-template-columns:repeat(2,1fr)}}
+/* Admin header on tablets and small laptops: the menu shrinks and scrolls inside the header instead of pushing the page sideways. */
+.top .nav{min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
+.top .nav::-webkit-scrollbar{display:none}
+.nav a{white-space:nowrap;flex:0 0 auto}
+.top .modebtn,.top .avbtn{flex:0 0 auto}
+@media (max-width:1320px){.nav a{padding:8px 8px;gap:6px;font-size:.84rem}}
+@media (max-width:1180px){.nav a svg{display:none}}
+/* Number columns: headers line up with their numbers (right-aligned). */
+table th.num,.stbl th.num{text-align:right}
