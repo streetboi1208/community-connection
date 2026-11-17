@@ -6,6 +6,9 @@ RUN npm ci --omit=dev
 COPY src ./src
 COPY db ./db
 COPY public ./public
+COPY preview ./preview
+COPY data ./data
+COPY gallery ./gallery
 USER node
 EXPOSE 3000
 CMD ["node", "src/server.js"]
