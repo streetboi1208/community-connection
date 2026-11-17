@@ -90,9 +90,15 @@
     [/^#\/log$/, vLog], [/^#\/profile$/, vProfile], [/^#\/resume$/, vResume],
     [/^#\/admin$/, vAdminHome], [/^#\/admin\/opps$/, vAdminOpps], [/^#\/admin\/opp\/(new|\d+)$/, vAdminOppEdit],
     [/^#\/admin\/roster\/(\d+)$/, vAdminRoster], [/^#\/admin\/approvals$/, vApprovals], [/^#\/admin\/people$/, vPeople],
-    [/^#\/admin\/person\/(\d+)$/, vPerson], [/^#\/admin\/import$/, vImport], [/^#\/admin\/reports$/, vReports], [/^#\/admin\/reports\/build$/, vBuilder],
+    [/^#\/admin\/person\/(\d+)$/, vPerson], [/^#\/admin\/import$/, vImport], [/^#\/admin\/reports$/, vReports], [/^#\/admin\/reports\/build$/, vBuilder], [/^#\/admin\/usage$/, vUsage],
     [/^#\/admin\/settings$/, vSettings]
   ];
+  // Friendly page names for the App usage report.
+  const PAGE_NAMES = [[/^#\/?$/, 'Home'], [/^#\/volunteer$/, 'Volunteer'], [/^#\/opp\//, 'Event details'], [/^#\/activity$/, 'My activity'],
+    [/^#\/log$/, 'Log hours'], [/^#\/profile$/, 'Profile'], [/^#\/resume$/, 'Volunteer résumé'], [/^#\/admin$/, 'Admin: Home'],
+    [/^#\/admin\/opp/, 'Admin: Opportunities'], [/^#\/admin\/roster\//, 'Admin: Roster'], [/^#\/admin\/approvals$/, 'Admin: Approvals'],
+    [/^#\/admin\/(people|person|import)/, 'Admin: People'], [/^#\/admin\/usage$/, 'Admin: App usage'], [/^#\/admin\/reports/, 'Admin: Reports'], [/^#\/admin\/settings$/, 'Admin: Settings']];
+  const pageName = h => (PAGE_NAMES.find(([re]) => re.test(h)) || [0, 'Other'])[1];
   async function route() {
     const hash = location.hash || '#/';
     try {
@@ -110,6 +116,7 @@
       if (!m) return go('#/');
       main.innerHTML = '<p class="muted">Loading…</p>';
       await m[1](...hash.match(m[0]).slice(1));
+      if (window.ccTrack) { if (hash === '#/login' || hash === '#/password') window.ccTrackStop(); else window.ccTrack(pageName(hash)); }
       window.scrollTo(0, 0);
       if (S.checkin && S.checkin.due && !S.checkinShown && S.meta) { S.checkinShown = true; checkinModal(); }
     } catch (e) {
@@ -758,7 +765,7 @@
     const year = sessionStorage.getItem('cc_year') || S.meta.today.slice(0, 4);
     const r = await get(`/admin/reports/participation?by=${by}&year=${year}`);
     const y0 = Number(S.meta.today.slice(0, 4));
-    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>Reports</h1><a class="btn red" href="#/admin/reports/build">Build a custom report</a></div><p class="muted" style="margin:0">${esc(r.scope)} · approved hours · impact = community hours × $${r.rate}/hr</p>
+    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>Reports</h1><div class="btnrow"><a class="btn ghost" href="#/admin/usage">App usage</a><a class="btn red" href="#/admin/reports/build">Build a custom report</a></div></div><p class="muted" style="margin:0">${esc(r.scope)} · approved hours · impact = community hours × $${r.rate}/hr</p>
       <div class="kpis"><div class="kpi"><b>${r.total.participation}%</b><span>Participation</span><small>${r.total.volunteers} of ${r.total.employees} employees volunteered</small></div>
         <div class="kpi"><b>${n1(r.total.hours)}</b><span>Volunteer hours</span></div><div class="kpi"><b>${money(r.total.impact)}</b><span>Financial impact</span></div></div>
       <div class="toolbar">${['market', 'branch', 'department', 'officer'].map(b => `<button class="chip" data-by="${b}" aria-pressed="${by === b}">By ${b}</button>`).join('')}
@@ -774,6 +781,40 @@
     $('#d2').addEventListener('click', () => download(`/admin/reports/hours?year=${year}&format=csv`, `hours-${year}.csv`));
     if ($('#d3')) $('#d3').addEventListener('click', () => download(`/admin/reports/hours?year=${year}&cra=1&format=csv`, `cra-hours-${year}.csv`));
     if ($('#d4')) $('#d4').addEventListener('click', () => download('/admin/board-seats?format=csv', 'board-seats.csv'));
+  }
+
+  // ---------- App usage: which pages people open, how often and for how long ----------
+  async function vUsage() {
+    const per = sessionStorage.getItem('cc_up') || 'month';
+    const by = sessionStorage.getItem('cc_uby') || 'market';
+    const [from, to] = rbPeriod(per, S.meta.today);
+    const r = await get(`/admin/reports/usage?from=${from}&to=${to}&by=${by}`);
+    const pct = r.roster ? Math.round(r.total.people / r.roster * 1000) / 10 : 0;
+    const mname = k => new Date(k + '-15T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    const maxV = Math.max(1, ...r.months.map(x => x.visits));
+    const periods = [['week', 'This week'], ['month', 'This month'], ['lastmonth', 'Last month'], ['quarter', 'This quarter'], ['year', 'This year']];
+    main.innerHTML = `<div class="btnrow" style="justify-content:space-between"><h1>App usage</h1><a class="btn ghost" href="#/admin/reports">Back to Reports</a></div>
+      <p class="muted" style="margin:0">${esc(r.scope)} · ${esc(fmtDate(r.from, { month: 'short', day: 'numeric', year: 'numeric' }))} to ${esc(fmtDate(r.to, { month: 'short', day: 'numeric', year: 'numeric' }))} · time counts only while the page is on screen</p>
+      <div class="toolbar">${periods.map(([k, l]) => `<button class="chip" data-per="${k}" aria-pressed="${per === k}">${l}</button>`).join('')}</div>
+      <div class="kpis"><div class="kpi"><b>${r.total.visits.toLocaleString('en-US')}</b><span>Page visits</span></div>
+        <div class="kpi"><b>${r.total.people}</b><span>People used the app</span><small>${pct}% of ${r.roster} employees on the roster</small></div>
+        <div class="kpi"><b>${r.total.people ? n1(r.total.minutes / r.total.people) : 0}</b><span>Minutes per person</span></div></div>
+      <div class="panel"><h2>Pages</h2>${r.pages.length ? `<div class="tablewrap"><table class="stbl tight"><thead><tr><th>Page</th><th class="num">Visits</th><th class="num">People</th><th class="num">Avg. minutes per visit</th><th class="num">Total hours</th></tr></thead><tbody>
+        ${r.pages.map(x => `<tr><td>${esc(x.page)}</td><td class="num">${x.visits.toLocaleString('en-US')}</td><td class="num">${x.people}</td><td class="num">${n1(x.avgMin)}</td><td class="num">${n1(x.hours)}</td></tr>`).join('')}
+        </tbody></table></div>` : '<p class="muted">No visits in this period yet.</p>'}</div>
+      <div class="panel"><div class="btnrow" style="justify-content:space-between"><h2>Who's using it</h2><div class="toolbar" style="margin:0">${['market', 'branch', 'department', 'officer'].map(b => `<button class="chip" data-uby="${b}" aria-pressed="${by === b}">By ${b}</button>`).join('')}</div></div>
+        <div class="tablewrap"><table class="stbl tight"><thead><tr><th>${by[0].toUpperCase() + by.slice(1)}</th><th class="num">Employees</th><th class="num">Used the app</th><th class="num">Share</th><th class="num">Visits</th></tr></thead><tbody>
+        ${r.groups.map(x => `<tr><td>${esc(x.group)}</td><td class="num">${x.employees}</td><td class="num">${x.active}</td><td class="num">${x.pct}%</td><td class="num">${x.visits.toLocaleString('en-US')}</td></tr>`).join('')}
+        </tbody></table></div></div>
+      <div class="panel"><h2>Visits by month</h2>${r.months.length ? `<div class="tablewrap"><table class="stbl tight"><thead><tr><th>Month</th><th>Visits</th><th class="num">People</th></tr></thead><tbody>
+        ${r.months.map(x => `<tr><td>${mname(x.month)}</td><td><span style="display:inline-block;height:10px;border-radius:5px;background:var(--navy,#26337a);width:${Math.max(2, Math.round(x.visits / maxV * 160))}px;vertical-align:middle"></span> ${x.visits.toLocaleString('en-US')}</td><td class="num">${x.people}</td></tr>`).join('')}
+        </tbody></table></div>` : '<p class="muted">No visits yet.</p>'}</div>
+      <div class="btnrow"><button class="btn ghost" id="u1">Export pages</button><button class="btn ghost" id="u2">Export by person</button></div>
+      <small class="muted">The export by person lists every employee on the roster, including people who haven't opened the app in this period.</small>`;
+    main.querySelectorAll('[data-per]').forEach(b => b.addEventListener('click', () => { sessionStorage.setItem('cc_up', b.dataset.per); vUsage(); }));
+    main.querySelectorAll('[data-uby]').forEach(b => b.addEventListener('click', () => { sessionStorage.setItem('cc_uby', b.dataset.uby); vUsage(); }));
+    $('#u1').addEventListener('click', () => download(`/admin/reports/usage?from=${from}&to=${to}&format=csv`, `app-usage-pages-${from}-to-${to}.csv`));
+    $('#u2').addEventListener('click', () => download(`/admin/reports/usage?from=${from}&to=${to}&format=csv&kind=people`, `app-usage-people-${from}-to-${to}.csv`));
   }
 
   // ---------- Report builder: run your own reports ----------

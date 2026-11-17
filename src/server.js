@@ -33,6 +33,9 @@ function createApp() {
   // a cross-site form or image cannot set. Cookies are also SameSite=Lax.
   app.use('/api', (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    // Page-visit beacons can't carry headers. They only add a visit for the signed-in person, and the
+    // SameSite=Lax cookie means another site can't send one as them.
+    if (req.method === 'POST' && req.path === '/track') return next();
     if (req.get('x-requested-with') !== 'cc') return res.status(403).json({ error: 'Request blocked.' });
     next();
   });

@@ -49,7 +49,7 @@ async function emp(username, roles, market, { mustChange = false, empNo } = {}) 
 
 test.before(async () => {
   await migrate();
-  await q('TRUNCATE guest_hours, board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
+  await q('TRUNCATE page_views, guest_hours, board_seats, waitlist, profile_requests, checkins, kiosks, hours, signups, shifts, opportunities, nonprofits, sessions, audit_log, employees, branches, departments RESTART IDENTITY CASCADE');
   M = Object.fromEntries((await q('SELECT id, name FROM markets')).rows.map(r => [r.name, r.id]));
   ids.admin = await emp('ana.admin', ['admin'], 'Permian Basin');
   ids.emp = await emp('eli.emp', [], 'Permian Basin');
@@ -474,4 +474,32 @@ test('report builder: groups, filters, top N, who has not volunteered, CSV, save
   // An employee with no admin role can't run reports.
   const e = await new Client().login('eli.emp');
   assert.equal((await e.get('/api/admin/reports/custom')).status, 403);
+});
+
+test('app usage: visits and time on screen are recorded and reported', async () => {
+  const e = await new Client().login('eli.emp');
+  assert.equal((await e.post('/api/track', { views: [{ id: 'visit-0001', page: 'Games', seconds: 0 }] })).status, 200);
+  await e.post('/api/track', { views: [{ id: 'visit-0001', page: 'Games', seconds: 95 }] });
+  await e.post('/api/track', { views: [{ id: 'visit-0001', page: 'Games', seconds: 20 }] }); // a late, shorter update never lowers the time
+  await e.post('/api/track', { views: [{ id: 'visit-0002', page: 'Training', seconds: 99999 }, { id: 'bad', page: 'x' }, { id: 'visit-0003', page: '<script>' }] });
+  const e2 = await new Client().login('eva.emp');
+  await e2.post('/api/track', { views: [{ id: 'visit-0001', page: 'Games', seconds: 30 }] });
+  assert.equal((await new Client().post('/api/track', { views: [] })).status, 401, 'signed-out visits are not recorded');
+  const rows = (await q('SELECT page, seconds FROM page_views ORDER BY id')).rows;
+  assert.deepEqual(rows.map(x => [x.page, x.seconds]), [['Games', 95], ['Training', 1800], ['Games', 30]]);
+  const a = await new Client().login('ana.admin');
+  const r = await a.get('/api/admin/reports/usage');
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  const games = r.data.pages.find(x => x.page === 'Games');
+  assert.equal(games.visits, 2); assert.equal(games.people, 2);
+  assert.equal(r.data.total.people, 2);
+  const csv = await a.get('/api/admin/reports/usage?format=csv&kind=people');
+  assert.match(csv.data, /^Employee,Market,Branch,Department,Visits,Minutes/);
+  assert.match(csv.data, /No visits/);
+  // A Lubbock market admin only sees Lubbock.
+  const lu = await new Client().login('lu.mkta');
+  const lr = await lu.get('/api/admin/reports/usage');
+  assert.equal(lr.status, 200);
+  assert.equal(lr.data.total.visits, 0, 'Permian Basin visits are not shown to a Lubbock market admin');
+  assert.equal((await e.get('/api/admin/reports/usage')).status, 403);
 });

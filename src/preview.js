@@ -23,10 +23,23 @@ const FILE = path.join(__dirname, '..', 'preview', 'full.html');
 const BANNER = '<div style="background:#ffd54a;color:#13294b;font:600 13px/1.4 system-ui,sans-serif;padding:8px 12px;text-align:center">'
   + 'Full preview: sample data only, nothing here is saved. '
   + '<a href="/" style="color:#13294b;text-decoration:underline">Back to the live app</a></div>';
+// App usage for the full preview: every screen change is recorded under a friendly page name.
+const NAMES = { home: 'Home', list: 'Volunteer', detail: 'Event details', mine: 'My activity', profile: 'Profile', more: 'More',
+  games: 'Games', glive: 'Live game', trivia: 'Live game', training: 'Training', trlesson: 'Training lesson', rewards: 'Points store',
+  cc: 'Culture Committee', leaders: 'Leaderboard', gallery: 'Photo gallery', btb: 'Beyond the Bank', raffle: 'Raffles', tickets: 'Tickets',
+  events: 'Events', swag: 'Swag orders', inbox: 'Notifications', nset: 'Notification settings', nonprofits: 'Nonprofits', np: 'Nonprofits',
+  ownlog: 'Log hours', donpublic: 'Donation request', kiosk: 'Kiosk', tradmin: 'Admin: Training', storeadmin: 'Admin: Store',
+  gadmin: 'Admin: Games', swagadmin: 'Admin: Swag', galadmin: 'Admin: Gallery', ahome: 'Admin: Home', dash: 'Admin: Dashboard',
+  manage: 'Admin: Opportunities', new: 'Admin: Opportunities', rosters: 'Admin: Roster', roster: 'Admin: Roster', approvals: 'Admin: Approvals',
+  people: 'Admin: People', person: 'Admin: People', roles: 'Admin: Roles', creports: 'Admin: Reports', donations: 'Admin: Donations',
+  notify: 'Admin: Notifications', attendance: 'Admin: Attendance', venues: 'Admin: Tickets', tnew: 'Admin: Tickets', rnew: 'Admin: Raffles' };
+const TRACK = '<script src="/track.js"></script><script>(function(){var N=' + JSON.stringify(NAMES)
+  + ';if(typeof render!=="function"||!window.ccTrack)return;var r0=render,last="";function t(){try{var n=N[S.view]||"Other";if(n!==last){last=n;ccTrack(n)}}catch(e){}}'
+  + 'render=function(){var o=r0.apply(this,arguments);t();return o};t()})();</script>';
 let html = null;
 function page() {
   if (!html) {
-    html = fs.readFileSync(FILE, 'utf8').replace(/<body([^>]*)>/, m => m + BANNER);
+    html = fs.readFileSync(FILE, 'utf8').replace(/<body([^>]*)>/, m => m + BANNER) + TRACK;
     // Swap the mockup's few sample photos for the real 2026 albums; keep its pending-approval examples.
     const real = galleryEntries();
     const at = html.indexOf('const REALGAL=');

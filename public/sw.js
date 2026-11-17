@@ -1,6 +1,6 @@
 // Caches only the app shell so it opens fast. API responses (personal data) are never cached.
-const CACHE = 'cc-shell-v1';
-const SHELL = ['/', '/app.css', '/pilot.css', '/app.js', '/icons.js', '/img/logo-white.png', '/img/logo-navy.png', '/img/icon-192.png'];
+const CACHE = 'cc-shell-v2';
+const SHELL = ['/', '/app.css', '/pilot.css', '/app.js', '/icons.js', '/track.js', '/img/logo-white.png', '/img/logo-navy.png', '/img/icon-192.png'];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

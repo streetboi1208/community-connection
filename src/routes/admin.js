@@ -383,6 +383,59 @@ r.get('/reports/participation', A.requirePerm('reports.hours'), async (req, res)
   res.json({ year, by, rate, rows: out, total: tot, scope: m ? req.user.market : 'All markets' });
 });
 
+// App usage: which pages people open, how often, and for how long. Dates are Central time.
+r.get('/reports/usage', A.requirePerm('reports.hours'), async (req, res) => {
+  const t = today();
+  const from = req.query.from ? isoDate(req.query.from, 'From') : t.slice(0, 8) + '01';
+  const to = req.query.to ? isoDate(req.query.to, 'To') : t;
+  const by = oneOf(req.query.by || 'market', 'Group by', ['market', 'branch', 'department', 'officer']);
+  const m = A.marketScope(req.user);
+  const day = "(v.viewed_at AT TIME ZONE 'America/Chicago')::date";
+  const base = `FROM page_views v JOIN employees e ON e.id=v.employee_id WHERE ${day} BETWEEN $1 AND $2 AND ($3::int IS NULL OR e.market_id=$3)`;
+  const args = [from, to, m];
+  if (req.query.format === 'csv') {
+    if (req.query.kind === 'people') {
+      const rows = await many(
+        `SELECT e.first_name || ' ' || e.last_name AS name, mk.name AS market, b.name AS branch, d.name AS department,
+                count(v.id)::int AS visits, COALESCE(sum(v.seconds),0)::int AS secs, count(DISTINCT v.page)::int AS pages,
+                max(v.viewed_at AT TIME ZONE 'America/Chicago') AS last_visit
+           FROM employees e JOIN markets mk ON mk.id=e.market_id LEFT JOIN branches b ON b.id=e.branch_id
+           LEFT JOIN departments d ON d.id=e.department_id
+           LEFT JOIN page_views v ON v.employee_id=e.id AND ${day} BETWEEN $1 AND $2
+          WHERE e.active AND ($3::int IS NULL OR e.market_id=$3)
+          GROUP BY e.id, mk.name, b.name, d.name ORDER BY visits DESC, name`, args);
+      res.type('text/csv').attachment(`app-usage-people-${from}-to-${to}.csv`);
+      return res.send(toCsv(['Employee', 'Market', 'Branch', 'Department', 'Visits', 'Minutes', 'Different pages', 'Last visit'],
+        rows.map(x => [x.name, x.market, x.branch || '', x.department || '', x.visits, Math.round(x.secs / 6) / 10, x.pages,
+          x.last_visit ? new Date(x.last_visit).toISOString().slice(0, 16).replace('T', ' ') : 'No visits'])));
+    }
+    const rows = await many(`SELECT v.page, count(*)::int AS visits, count(DISTINCT v.employee_id)::int AS people, COALESCE(sum(v.seconds),0)::int AS secs ${base} GROUP BY 1 ORDER BY 2 DESC`, args);
+    res.type('text/csv').attachment(`app-usage-pages-${from}-to-${to}.csv`);
+    return res.send(toCsv(['Page', 'Visits', 'People', 'Average minutes per visit', 'Total hours'],
+      rows.map(x => [x.page, x.visits, x.people, Math.round(x.secs / x.visits / 6) / 10, Math.round(x.secs / 360) / 10])));
+  }
+  const sum = await one(`SELECT count(*)::int AS visits, count(DISTINCT v.employee_id)::int AS people, COALESCE(sum(v.seconds),0)::int AS secs ${base}`, args);
+  const roster = (await one('SELECT count(*)::int AS n FROM employees WHERE active AND ($1::int IS NULL OR market_id=$1)', [m])).n;
+  const pages = await many(`SELECT v.page, count(*)::int AS visits, count(DISTINCT v.employee_id)::int AS people, COALESCE(sum(v.seconds),0)::int AS secs ${base} GROUP BY 1 ORDER BY 2 DESC, 1`, args);
+  const grp = { market: 'mk.name', branch: "COALESCE(b.name,'(no branch)')", department: "COALESCE(d.name,'(no department)')", officer: "CASE WHEN e.officer THEN 'Officers' ELSE 'Non-officers' END" }[by];
+  const groups = await many(
+    `WITH u AS (SELECT v.employee_id, count(*) AS n ${base.replace('JOIN employees e ON e.id=v.employee_id', 'JOIN employees e ON e.id=v.employee_id')} GROUP BY 1)
+     SELECT ${grp} AS grp, count(*)::int AS employees, count(u.employee_id)::int AS active, COALESCE(sum(u.n),0)::int AS visits
+       FROM employees e JOIN markets mk ON mk.id=e.market_id LEFT JOIN branches b ON b.id=e.branch_id
+       LEFT JOIN departments d ON d.id=e.department_id LEFT JOIN u ON u.employee_id=e.id
+      WHERE e.active AND ($3::int IS NULL OR e.market_id=$3) GROUP BY 1 ORDER BY 1`, args);
+  const months = await many(
+    `SELECT to_char(date_trunc('month', v.viewed_at AT TIME ZONE 'America/Chicago'), 'YYYY-MM') AS month,
+            count(*)::int AS visits, count(DISTINCT v.employee_id)::int AS people
+       FROM page_views v JOIN employees e ON e.id=v.employee_id
+      WHERE v.viewed_at > now() - interval '12 months' AND ($1::int IS NULL OR e.market_id=$1) GROUP BY 1 ORDER BY 1`, [m]);
+  res.json({ from, to, by, roster, scope: m ? req.user.market : 'All markets',
+    total: { visits: sum.visits, people: sum.people, minutes: Math.round(sum.secs / 6) / 10 },
+    pages: pages.map(x => ({ page: x.page, visits: x.visits, people: x.people, avgMin: Math.round(x.secs / x.visits / 6) / 10, hours: Math.round(x.secs / 360) / 10 })),
+    groups: groups.map(x => ({ group: x.grp, employees: x.employees, active: x.active, visits: x.visits, pct: x.employees ? Math.round(x.active / x.employees * 1000) / 10 : 0 })),
+    months });
+});
+
 // Detailed hours (Compliance and Market admins). CRA column shows CRA-eligible service.
 r.get('/reports/hours', A.requirePerm('reports.hours'), async (req, res) => {
   const [from, to, year] = yearRange(req);
